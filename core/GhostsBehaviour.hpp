@@ -5,18 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <glm/glm.hpp>
-#include <queue>
-#include <unordered_set>
 
-
-// Direction the ghosts can take to reach target position;
-enum GhostDirection {
-    UP,
-    DOWN,
-    RIGHT,
-    LEFT,
-    STOP
-};
 
 // Define constants for ghost states;
 enum GhostState {
@@ -41,18 +30,20 @@ class Ghost {
         glm::vec3 startingPosition;
         glm::vec3 currentPosition;
         glm::vec3 targetPosition;
+        glm::vec2 movementDirection;
 
         // Coordinates that come from the game of the player and the ghost are in continuous floats, however to compute shortwst path on map we need their discrete position;
         glm::ivec2 currentPositionInMap;
         glm::ivec2 targetPositionInMap;
 
         GhostState state;
+        std::vector<std::vector<int>> maze;
         // float modeDuration; // Do not know if it is useful;
         
 
     public:
 
-        Ghost(std::string ghostName, glm::vec3 startColor, float startSpeed, float startSizeModifier, glm::vec3 startPosition) : speedModifier(1.0f) {
+        Ghost(std::string ghostName, glm::vec3 startColor, glm::vec3 startPosition, float startSpeed, float startSizeModifier) : speedModifier(1.0f) {
             name = ghostName;
             color = startColor;
 
@@ -68,18 +59,18 @@ class Ghost {
             state = NORMAL;
         }
 
-        virtual void setTargetPosition(std::vector<std::vector<int>> map, glm::vec3 playerPosition) = 0;
+        virtual void setTargetPosition(glm::vec3 playerPosition) = 0;
 
-        void move(const std::vector<std::vector<int>> map, const glm::vec3 playerPosition) {
+        void move(const glm::vec3 playerPosition) {
             
-            setTargetPosition(map, playerPosition); // Set the target position based on the ghost's behavior;
+            setTargetPosition(playerPosition); // Set the target position based on the ghost's behavior;
 
             // Convert to discrete coordinates;
             currentPositionInMap = convertToDiscreteCoordinates(currentPosition);
             targetPositionInMap = convertToDiscreteCoordinates(targetPosition);
 
             // Compute the shortest path to the target position;
-            // GhostDirection dir = leeAlgorithm(map, currentPositionInMap, targetPositionInMap);
+            movementDirection = leeAlgorithm(currentPositionInMap, targetPositionInMap);
 
             // Move towards the target position;
 
@@ -87,11 +78,18 @@ class Ghost {
 
         // Convert currentPosition or targetPosition into discrete coordinates. Cannot be done now since I have no idea how the maze will be positioned in the world coordinates;
         glm::ivec2 convertToDiscreteCoordinates(glm::vec3 continuousCoordinates) {
-            glm::ivec2 discreteCoordinates = glm::ivec2(1, 1);
 
-            // TODO: transform;
+            // Round to nearest integer;
+            int col = static_cast<int>(continuousCoordinates.x + 0.5f);
+            int row = static_cast<int>(continuousCoordinates.z + 0.5f);
 
-            return discreteCoordinates;
+            // Clamp row and col to ensure they are within the maze boundaries;
+            row = glm::clamp(row, 0, 30);
+            col = glm::clamp(col, 0, 26);
+
+            // std::cout << row << ", " << col << ";\n";
+
+            return glm::ivec2(col, row);
         }
 
 
@@ -122,8 +120,6 @@ class Ghost {
 
         glm::vec3 getTargetPosition() const { return targetPosition; }
 
-        void setTargetPosition(const glm::vec3& position) { targetPosition = position; }
-
         GhostState getState() const { return state; }
 
         void setState(GhostState newState) { state = newState; }
@@ -140,8 +136,10 @@ class Ghost {
         }
 
         // Lee algorithm to find the shortest path between the current position and the target one;
-        GhostDirection leeAlgorithm(std::vector<std::vector<int>> map, glm::ivec2 startPos, glm::ivec2 targetPos) {
-            GhostDirection moveInDirection = STOP;
+        glm::vec2 leeAlgorithm(glm::ivec2 startPos, glm::ivec2 targetPos) {
+
+            // TODO
+            return glm::vec2(0.0f, 0.0f);
         }
 };
 
@@ -151,10 +149,10 @@ class ChaserGhost : public Ghost {
 
     public:
 
-        ChaserGhost(std::string ghostName, glm::vec3 startColor, float startSpeed, float startSize, glm::vec3 startPosition) : Ghost(ghostName, startColor, startSpeed, startSize, startPosition) { }
+        ChaserGhost(std::string ghostName, glm::vec3 startColor, glm::vec3 startPosition, float startSpeed, float startSize) : Ghost(ghostName, startColor, startPosition, startSpeed, startSize) { }
 
-        void setTargetPosition(std::vector<std::vector<int>> map, glm::vec3 playerPosition) override {
-            std::cout << "I am chaser";
+        void setTargetPosition(glm::vec3 playerPosition) override {
+            std::cout << "I am chaser\n";
             targetPosition = playerPosition;
         }
 };
@@ -163,22 +161,22 @@ class AmbusherGhost : public Ghost {
 
     public:
 
-        AmbusherGhost(std::string ghostName, glm::vec3 startColor, float startSpeed, float startSize, glm::vec3 startPosition) : Ghost(ghostName, startColor, startSpeed, startSize, startPosition) { }
+        AmbusherGhost(std::string ghostName, glm::vec3 startColor, glm::vec3 startPosition, float startSpeed, float startSize) : Ghost(ghostName, startColor, startPosition, startSpeed, startSize) { }
 
-        void setTargetPosition(const std::vector<std::vector<int>> map, const glm::vec3 playerPosition) override {
-            std::cout << "I am ambusher";
+        void setTargetPosition(const glm::vec3 playerPosition) override {
+            std::cout << "I am ambusher\n";
             targetPosition = glm::vec3(); // ?
         }
 };
 
-class FleerGhost : public Ghost {
+class ProtectorGhost : public Ghost {
 
     public:
 
-        FleerGhost(std::string ghostName, glm::vec3 startColor, float startSpeed, float startSize, glm::vec3 startPosition) : Ghost(ghostName, startColor, startSpeed, startSize, startPosition) { }
+        ProtectorGhost(std::string ghostName, glm::vec3 startColor, glm::vec3 startPosition, float startSpeed, float startSize) : Ghost(ghostName, startColor, startPosition, startSpeed, startSize) { }
 
-        void setTargetPosition(const std::vector<std::vector<int>> map, const glm::vec3 playerPosition) override {
-            std::cout << "I am fleer";
+        void setTargetPosition(const glm::vec3 playerPosition) override {
+            std::cout << "I am protector\n";
             targetPosition = glm::vec3(); // ?
         }
 };

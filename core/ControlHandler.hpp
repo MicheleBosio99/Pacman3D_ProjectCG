@@ -26,7 +26,7 @@ class ViewCameraControl {
         glm::vec3 front; // Vector that holde the current front direction;
         glm::vec3 up; // Vector that holde the up direction. This won't ever change in the current configuration so it is just as worldUp;
         glm::vec3 right; // Vector that holde the current right direction;
-        glm::vec3 worldUp; // Vector that holde the fixed up direction in the world (not relative to the player);
+        glm::vec3 worldUp; // Vector that hold the fixed up direction in the world (not relative to the player);
 
         float yaw; // Current yaw angle;
         float pitch; // Current pitch angle;

@@ -20,6 +20,7 @@ const uint32_t MAZE_WIDTH = 28;
 const int dx[] = { 0, 1, 0, -1 };
 const int dy[] = { -1, 0, 1, 0 };
 
+
 // Defines an enum for the content of the maze;
 enum CellContent {
     EMPTY, // Empty cell;

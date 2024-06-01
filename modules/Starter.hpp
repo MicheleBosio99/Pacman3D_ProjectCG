@@ -135,9 +135,13 @@ static std::vector<char> readFile(const std::string& filename) {
 
 #include "core/ControlHandler.hpp"
 #include "core/MazeGenerator.hpp"
+#include "core/GhostsBehaviour.hpp"
 
 
-ViewCameraControl viewCamera(glm::vec3(23.5f, 0.6f, 14.0f), glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, 0.0f); // position, up, yaw, pitch;
+glm::vec3 PacmanStartingPosition(23.5f, 0.6f, 14.0f);
+
+
+ViewCameraControl viewCamera(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, 0.0f); // position, up, yaw, pitch;
 MazeGenerator originalMazeGen;
 
 float deltaTime = 0.0f; // Time between current frame and last frame;
@@ -188,6 +192,29 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 
 
+struct GhostCollection {
+
+    ChaserGhost blinky;
+    AmbusherGhost pinky;
+    AmbusherGhost inky;
+    ProtectorGhost clyde;
+
+    GhostCollection() :
+        blinky("Blinky", glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(11.5f, 0.5f, 14.0f), 1.0f, 1.0f),
+        pinky("Pinky", glm::vec3(1.0f, 0.7f, 0.9f), glm::vec3(14.5f, 0.5f, 12.0f), 1.0f, 1.0f),
+        inky("Inky", glm::vec3(0.5f, 0.96f, 1.0f), glm::vec3(14.5f, 0.5f, 14.0f), 1.0f, 1.0f),
+        clyde("Clyde", glm::vec3(0.91f, 0.7f, 0.0f), glm::vec3(14.5f, 0.5f, 16.0f), 1.0f, 1.0f) { }
+
+    void moveAllGhosts(glm::vec3 playerPosition) {
+        blinky.move(playerPosition);
+        pinky.move(playerPosition);
+        inky.move(playerPosition);
+        clyde.move(playerPosition);
+    }
+};
+
+// To delete;
+GhostCollection ghosts;
 
 
 
@@ -280,7 +307,12 @@ class Pacman3D {
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Tell GLFW that this is not OpenGL;
             glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-            GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+
+            int monitorCount;
+            GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
+            GLFWmonitor* primaryMonitor = monitorCount <= 1 ? monitors[0] : monitors[1];
+
+            //GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
             const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
             window = glfwCreateWindow(mode->width, mode->height, "Pacman3D", primaryMonitor, NULL); // Create the window (width, height, name, monitor, dc);
@@ -335,6 +367,9 @@ class Pacman3D {
                 lastFrame = currentFrame;
 
                 processInput(window); // Use the input received from keyboard this frame to update the view matrix;
+
+                // ghosts.blinky.move(viewCamera.position);
+                // printf("Position: %f, %f, %f;\n", viewCamera.position.x, viewCamera.position.y, viewCamera.position.z);
 
                 drawFrame();
 
