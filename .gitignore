@@ -1,0 +1,45 @@
+# Ignore Visual Studio temporary files
+.vs/
+
+# Ignore user-specific Visual Studio settings
+*.suo
+*.user
+*.user.props
+*.user.targets
+
+# Ignore build output folders
+x64/
+Release/
+Debug/
+
+# Ignore generated files
+*.exe
+*.pdb
+*.ilk
+*.idb
+*.tlog/
+*.log
+
+# Ignore binary files
+*.o
+*.lib
+*.dll
+
+# Ignore files generated during compilation
+*.sdf
+*.ipch/
+*.pch
+*.lastbuildstate
+
+# Ignore package files and directories
+*.7z
+*.zip
+*.rar
+*.gz
+*.tar
+*.bmp
+
+# Ignore macOS specific files
+.DS_Store
+
+Not really working code.txt
