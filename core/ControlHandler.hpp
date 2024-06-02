@@ -48,10 +48,10 @@ class ViewCameraControl {
         }
 
         // Used in the Starter.hpp to update the view matrix in the UBO;
-        glm::mat4 GetViewMatrix() { return glm::lookAt(position, position + front, up); }
+        glm::mat4 getViewMatrix() { return glm::lookAt(position, position + front, up); }
 
         // Process keyboard inputs;
-        void ProcessKeyboardInput(Direction direction, float deltaTime) {
+        void processKeyboardInput(Direction direction, float deltaTime) {
             float velocity = movementSpeed * deltaTime;
 
             if (direction == FORWARD) { position += front * velocity; }
@@ -63,7 +63,7 @@ class ViewCameraControl {
         }
 
         // Process mouse inputs;
-        void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true) {
+        void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true) {
             xoffset *= mouseSensitivity;
             yoffset *= mouseSensitivity;
 
@@ -94,7 +94,5 @@ class ViewCameraControl {
             up = glm::normalize(glm::cross(right, front));
         }
 };
-
-
 
 #endif

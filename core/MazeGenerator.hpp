@@ -11,14 +11,11 @@
 #include <random>
 #include <ctime>
 #include <array>
-
+#include <glm/glm.hpp>
 #include <stdio.h>
 
 const uint32_t MAZE_HEIGHT = 31;
 const uint32_t MAZE_WIDTH = 28;
-
-const int dx[] = { 0, 1, 0, -1 };
-const int dy[] = { -1, 0, 1, 0 };
 
 
 // Defines an enum for the content of the maze;
@@ -27,7 +24,7 @@ enum CellContent {
     WALL, // Cell with a wall;
     PELLET, // Contains a pellet;
     POWER_PELLET, // Contains a power pellet (the ones pacman eats to defeat ghosts);
-    GATE, // Cell has a gate, the ones the ghosts came out from;
+    GHOSTS_HUB, // Cell is one of the ghosts hub, the ones the ghosts came out from;
     TELEPORT_HORIZONTAL, // Cell on the map limit that teleports pacman to the other side of the maze horizontally;
     TELEPORT_VERTICAL // Cell on the map limit that teleports pacman to the other side of the maze vertically;
 };
@@ -67,7 +64,7 @@ class MazeGenerator {
                         case WALL: std::cout << char(254) << " "; break;
                         case PELLET: std::cout << char(167) << " "; break;
                         case POWER_PELLET: std::cout << char(155) << " "; break;
-                        case GATE: std::cout << char(126) << " "; break;
+                        case GHOSTS_HUB: std::cout << char(126) << " "; break;
                         case TELEPORT_HORIZONTAL: std::cout << char(196) << " "; break;
                         case TELEPORT_VERTICAL: std::cout << char(179) << " "; break;
                     }
@@ -94,49 +91,9 @@ class MazeGenerator {
             file.close();
         }
 
-        // Is the x,y cell a valid position in the map?
-        bool isValid(int x, int y) { return x >= 0 && x < MAZE_WIDTH && y >= 0 && y < MAZE_HEIGHT; }
-
         // Generate a random maze. Still doesn't works...
         void generateRandomMaze() {
-            // TODO: random maze generator;
 
-            // Check if this implementation follows the rules for a good maze;
-            // Initialize maze with all walls
-            std::vector<std::vector<int>> maze(MAZE_HEIGHT, std::vector<int>(MAZE_WIDTH, 1));
-
-            // Seed random number generator;
-            std::mt19937 rng(time(0));
-            std::uniform_int_distribution<int> distribution(0, 3);
-
-            // Start DFS from the center of the maze;
-            int startX = MAZE_HEIGHT / 2;
-            int startY = MAZE_WIDTH / 2;
-            std::vector<std::pair<int, int>> stack;
-            stack.push_back(std::make_pair(startX, startY));
-
-            while (!stack.empty()) {
-                int x = stack.back().first;
-                int y = stack.back().second;
-                stack.pop_back();
-
-                // Shuffle the directions;
-                std::vector<int> directions = { 0, 1, 2, 3 };
-                std::shuffle(directions.begin(), directions.end(), rng);
-
-                for (int dir : directions) {
-                    int nx = x + dx[dir] * 2; // Move two steps in x direction;
-                    int ny = y + dy[dir] * 2; // Move two steps in y direction;
-
-                    if (isValid(nx, ny) && maze[ny][nx] == 1) {
-                        // Break the wall between (x, y) and (nx, ny);
-                        maze[y + dy[dir]][x + dx[dir]] = maze[ny][nx] = 0;
-                        stack.push_back(std::make_pair(nx, ny));
-                    }
-                }
-            }
-
-            for (int i = 0; i < 8; i ++) { for (int j = 0; j < 8; j ++) { maze[11 + i][10 + j] = 1; } }
         }
 
         // Generate the maze mesh filling vertices and indices arrays;

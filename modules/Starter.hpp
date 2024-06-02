@@ -137,12 +137,34 @@ static std::vector<char> readFile(const std::string& filename) {
 #include "core/MazeGenerator.hpp"
 #include "core/GhostsBehaviour.hpp"
 
+struct GhostCollection {
 
-glm::vec3 PacmanStartingPosition(23.5f, 0.6f, 14.0f);
+    ChaserGhost blinky;
+    AmbusherGhost pinky;
+    AmbusherGhost inky;
+    ProtectorGhost clyde;
 
+    GhostCollection(std::vector<std::vector<int>> maze) :
+        blinky("Blinky", glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(11.5f, 0.5f, 14.0f), 1.0f, 1.0f),
+        pinky("Pinky", glm::vec3(1.0f, 0.7f, 0.9f), glm::vec3(14.5f, 0.5f, 12.0f), 1.0f, 1.0f, 4),
+        inky("Inky", glm::vec3(0.5f, 0.96f, 1.0f), glm::vec3(14.5f, 0.5f, 14.0f), 1.0f, 1.0f, 2),
+        clyde("Clyde", glm::vec3(0.91f, 0.7f, 0.0f), glm::vec3(14.5f, 0.5f, 16.0f), 1.0f, 1.0f) { setMazeInGhosts(maze); }
 
-ViewCameraControl viewCamera(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, 0.0f); // position, up, yaw, pitch;
-MazeGenerator originalMazeGen;
+    void moveAllGhosts(float deltaTime, glm::vec3 playerPosition, glm::vec3 playerDirection) {
+        blinky.move(deltaTime, playerPosition);
+        pinky.move(deltaTime, playerPosition, playerDirection);
+        inky.move(deltaTime, playerPosition, playerDirection);
+        clyde.move(deltaTime, playerPosition);
+    }
+
+    void setMazeInGhosts(std::vector<std::vector<int>> maze) { blinky.setMaze(maze); pinky.setMaze(maze); inky.setMaze(maze); clyde.setMaze(maze); }
+};
+
+glm::vec3 PacmanStartingPosition(23.5f, 0.6f, 14.0f); // Set default Pacman starting position;
+
+ViewCameraControl viewCamera(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, 0.0f); // Controller that handles view camera. Gets position, up, yaw, pitch;
+MazeGenerator originalMazeGen; // Object that generates and holds maze info;
+GhostCollection ghosts(originalMazeGen.getMaze()); // Enemy ghosts holder;
 
 float deltaTime = 0.0f; // Time between current frame and last frame;
 float lastFrame = 0.0f; // Time of last frame;
@@ -156,10 +178,10 @@ bool closeApp = false; // Boolean determining wheter the app will be closed the 
 
 // Process the input received from keyboard using ViewCameraControl class;
 void processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { viewCamera.ProcessKeyboardInput(FORWARD, deltaTime); }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { viewCamera.ProcessKeyboardInput(BACKWARD, deltaTime); }
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { viewCamera.ProcessKeyboardInput(LEFT, deltaTime); }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { viewCamera.ProcessKeyboardInput(RIGHT, deltaTime); }
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { viewCamera.processKeyboardInput(FORWARD, deltaTime); }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { viewCamera.processKeyboardInput(BACKWARD, deltaTime); }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { viewCamera.processKeyboardInput(LEFT, deltaTime); }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { viewCamera.processKeyboardInput(RIGHT, deltaTime); }
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) { closeApp = true; } // If escape button is clicked exit the app;
 }
 
@@ -179,7 +201,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     lastX = xpos;
     lastY = ypos;
 
-    viewCamera.ProcessMouseMovement(xoffset, yoffset);
+    viewCamera.processMouseMovement(xoffset, yoffset);
 
     // glfwSetCursorPos(window, WIDTH / 2.0, HEIGHT / 2.0);     // Center the mouse cursor after processing movement;
 }
@@ -189,32 +211,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) { isMousePressed = true; firstMouse = true; }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) { isMousePressed = false; }
 }
-
-
-
-struct GhostCollection {
-
-    ChaserGhost blinky;
-    AmbusherGhost pinky;
-    AmbusherGhost inky;
-    ProtectorGhost clyde;
-
-    GhostCollection() :
-        blinky("Blinky", glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(11.5f, 0.5f, 14.0f), 1.0f, 1.0f),
-        pinky("Pinky", glm::vec3(1.0f, 0.7f, 0.9f), glm::vec3(14.5f, 0.5f, 12.0f), 1.0f, 1.0f),
-        inky("Inky", glm::vec3(0.5f, 0.96f, 1.0f), glm::vec3(14.5f, 0.5f, 14.0f), 1.0f, 1.0f),
-        clyde("Clyde", glm::vec3(0.91f, 0.7f, 0.0f), glm::vec3(14.5f, 0.5f, 16.0f), 1.0f, 1.0f) { }
-
-    void moveAllGhosts(glm::vec3 playerPosition) {
-        blinky.move(playerPosition);
-        pinky.move(playerPosition);
-        inky.move(playerPosition);
-        clyde.move(playerPosition);
-    }
-};
-
-// To delete;
-GhostCollection ghosts;
 
 
 
@@ -368,7 +364,7 @@ class Pacman3D {
 
                 processInput(window); // Use the input received from keyboard this frame to update the view matrix;
 
-                // ghosts.blinky.move(viewCamera.position);
+                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // wHY IS IT NOT WORKIIIINGNNNNNGNGNGNGGG
                 // printf("Position: %f, %f, %f;\n", viewCamera.position.x, viewCamera.position.y, viewCamera.position.z);
 
                 drawFrame();
@@ -1442,7 +1438,7 @@ class Pacman3D {
             ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotation on z-axis using time;
 
             // ubo.view = glm::lookAt(glm::vec3(4.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Look-at matrix from 45 degrees up;
-            ubo.view = viewCamera.GetViewMatrix();
+            ubo.view = viewCamera.getViewMatrix();
 
             ubo.proj = glm::perspective(glm::radians(60.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f); // Perspective proj;
             ubo.proj[1][1] *= -1; // OpenGL standard to Vulkan;
