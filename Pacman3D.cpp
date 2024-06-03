@@ -1,4 +1,4 @@
-﻿#include "modules/Starter.hpp"
+﻿#include "modules/MyStarter.hpp"
 
 int main() {
     Pacman3D app;

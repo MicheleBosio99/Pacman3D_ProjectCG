@@ -146,7 +146,8 @@
   <ItemGroup>
     <ClInclude Include="core\ControlHandler.hpp" />
     <ClInclude Include="core\GhostsBehaviour.hpp" />
-    <ClInclude Include="core\MazeGenerator.hpp" />
+    <ClInclude Include="core\EnvironmentGenerator.hpp" />
+    <ClInclude Include="core\ModelHandler.hpp" />
     <ClInclude Include="headers\glm\common.hpp" />
     <ClInclude Include="headers\glm\detail\compute_common.hpp" />
     <ClInclude Include="headers\glm\detail\compute_vector_relational.hpp" />
@@ -388,6 +389,7 @@
     <ClInclude Include="headers\stb_image_write.h" />
     <ClInclude Include="headers\tiny_gltf.h" />
     <ClInclude Include="headers\tiny_obj_loader.h" />
+    <ClInclude Include="modules\MyStarter.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="headers\glm\detail\func_common.inl" />

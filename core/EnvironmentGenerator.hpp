@@ -14,8 +14,7 @@
 #include <glm/glm.hpp>
 #include <stdio.h>
 
-const uint32_t MAZE_HEIGHT = 31;
-const uint32_t MAZE_WIDTH = 28;
+const glm::vec3 color = glm::vec3(1.0f); // Color is generic for every mesh since there will be then a texture applied on;
 
 
 // Defines an enum for the content of the maze;
@@ -30,8 +29,10 @@ enum CellContent {
 };
 
 
-class MazeGenerator {
 
+
+// Maze generator class creates the mesh of the maze, either by loading the maze as .txt or by generating one random;
+class MazeGenerator {
 
     public:
 
@@ -54,7 +55,6 @@ class MazeGenerator {
         std::vector<Vertex> getMazeVertices() { return mazeVertices; }
         std::vector<uint32_t> getMazeIndices() { return mazeIndices; }
 
-
         // Maze print on console;
         void printMaze() {
             for (const auto& row : maze) {
@@ -72,6 +72,7 @@ class MazeGenerator {
                 std::cout << std::endl;
             }
         }
+
 
     private:
 
@@ -103,15 +104,18 @@ class MazeGenerator {
             mazeIndices.clear();
 
             // Define the color and texture coordinate for the vertices;
-            glm::vec3 color(1.0f, 1.0f, 1.0f); // White color;
             float wallSize = 1.0f;
             float x_coord; float y_coord;
 
-            for (uint32_t x = 0; x < MAZE_HEIGHT; x ++) {
-                for (uint32_t y = 0; y < MAZE_WIDTH; y ++) {
+            // Calculate the center of the maze
+            float mazeCenterX = (maze.size() / 2.0f) * wallSize;
+            float mazeCenterY = (maze[0].size() / 2.0f) * wallSize;
 
-                    x_coord = x * wallSize;
-                    y_coord = y * wallSize;
+            for (uint32_t x = 0; x < maze.size(); x++) {
+                for (uint32_t y = 0; y < maze[0].size(); y++) {
+
+                    x_coord = x * wallSize - mazeCenterX;
+                    y_coord = y * wallSize - mazeCenterY;
 
                     // Only if it is a wall;
                     if (maze[x][y] == WALL) {
@@ -158,6 +162,157 @@ class MazeGenerator {
                 }
             }
         }
+};
+
+
+// Sky generator class creates the sky mesh. The sky is a dome;gene
+class SkyGenerator {
+
+    public:
+
+        const float PI = 3.14159265359f;
+
+        float skyRadius;
+        float maxHeight;
+        int numLatSegments;
+        int numLonSegments;
+
+        std::vector<Vertex> skyVertices;
+        std::vector<uint32_t> skyIndices;
+
+        SkyGenerator(float radius = 24.0f, float maxHeight = -24.0f, int numLatSegments = 32, int numLonSegments = 64)
+            : skyRadius(radius), maxHeight(maxHeight), numLatSegments(numLatSegments), numLonSegments(numLatSegments) { generateSkyMesh(); }
+
+        std::vector<Vertex> geSkyVertices() { return skyVertices; }
+        std::vector<uint32_t> getSkyIndices() { return skyIndices; }
+
+    private:
+
+        // Generate the mesh of a dome;
+        void generateSkyMesh() {
+
+            skyVertices.clear();
+            skyIndices.clear();
+
+            float maxTheta = asin(maxHeight / skyRadius);
+
+            // Fill vertices vector;
+            for (int lat = 0; lat <= numLatSegments; lat ++) {
+
+                float theta = maxTheta * (static_cast<float>(lat) / numLatSegments);
+                float sinTheta = sin(theta);
+                float cosTheta = cos(theta);
+
+                for (int lon = 0; lon <= numLonSegments; lon ++) {
+                    float phi = 2.0f * PI * (static_cast<float>(lon) / numLonSegments);
+                    float sinPhi = sin(phi);
+                    float cosPhi = cos(phi);
+
+                    // Compute position coordinates;
+                    float x = skyRadius * cosPhi * sinTheta;
+                    float y = skyRadius * cosTheta;
+                    float z = skyRadius * sinPhi * sinTheta;
+
+                    // Compute texture coordinates;
+                    float u = static_cast<float>(lon) / numLatSegments;
+                    float v = static_cast<float>(lat) / numLonSegments;
+
+                    skyVertices.push_back(Vertex{ {x, y, z}, color, {u, v} });
+                }
+            }
+
+            // Fill indices vector;
+            for (int lat = 0; lat < numLatSegments; lat ++) {
+                for (int lon = 0; lon < numLonSegments; lon ++) {
+
+                    int first = (lat * (numLonSegments + 1)) + lon;
+                    int second = first + numLonSegments + 1;
+
+                    skyIndices.push_back(first);
+                    skyIndices.push_back(second);
+                    skyIndices.push_back(first + 1);
+
+                    skyIndices.push_back(second);
+                    skyIndices.push_back(second + 1);
+                    skyIndices.push_back(first + 1);
+                }
+            }
+        }
+};
+
+
+// Floor generator class creates the floor mesh;
+class FloorGenerator {
+
+    public:
+
+        float floorSide;
+        int numOfSegments;
+        
+        std::vector<Vertex> floorVertices;
+        std::vector<uint32_t> floorIndices;
+
+        FloorGenerator(float sideLength = 50.0f, int segments = 50) : floorSide(sideLength), numOfSegments(segments) { generateFloorMesh(); }
+
+        std::vector<Vertex> getFloorVertices() { return floorVertices; }
+        std::vector<uint32_t> getFloorIndices() { return floorIndices; }
+
+    private:
+
+        void generateFloorMesh() {
+
+            floorVertices.clear();
+            floorIndices.clear();
+
+            float halfLength = floorSide / 2.0f;
+            float segmentSize = floorSide / numOfSegments;
+
+            // Fill vertices vector;
+            for (int z = 0; z <= numOfSegments; z ++) {
+                for (int x = 0; x <= numOfSegments; x ++) {
+
+                    float xPos = -halfLength + x * segmentSize;
+                    float zPos = -halfLength + z * segmentSize;
+
+                    // Calculate texture coordinates;
+                    float u = static_cast<float>(x) / numOfSegments;
+                    float v = static_cast<float>(z) / numOfSegments;
+
+                    floorVertices.push_back(Vertex{ {xPos, 0.0f, zPos}, color, {u, v} });
+                }
+            }
+
+            // Fill indices vector;
+            for (int z = 0; z < numOfSegments; z ++) {
+                for (int x = 0; x < numOfSegments; x ++) {
+
+                    int topLeft = (z * (numOfSegments + 1)) + x;
+                    int topRight = topLeft + 1;
+                    int bottomLeft = topLeft + (numOfSegments + 1);
+                    int bottomRight = bottomLeft + 1;
+
+                    floorIndices.push_back(topLeft);
+                    floorIndices.push_back(bottomLeft);
+                    floorIndices.push_back(topRight);
+
+                    floorIndices.push_back(topRight);
+                    floorIndices.push_back(bottomLeft);
+                    floorIndices.push_back(bottomRight);
+                }
+            }
+        }
+};
+
+
+// Class that holds all meshes classes generators that "handly" generate vertices and indices;
+class EnvironmentGenerator {
+
+    public:
+
+        MazeGenerator mazeGenerator;
+        FloorGenerator floorGenerator;
+        SkyGenerator skyGenerator;
+
 };
 
 

@@ -1,8 +1,4 @@
 
-
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 #include <vector>
 #include <map>
@@ -28,6 +24,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -37,6 +36,10 @@
 
 const uint32_t WIDTH = 1600;
 const uint32_t HEIGHT = 1080;
+
+const float pacmanHeight = .6f;
+const float ghostsHeight = 0.6f;
+const float ghostsScale = 0.275f;
 
 const std::string MODEL_PATH = "models/viking_room.obj";
 const std::string TEXTURE_PATH = "textures/viking_room.png";
@@ -135,9 +138,10 @@ static std::vector<char> readFile(const std::string& filename) {
 
 // MY CODE _____________________________________________________________________________________________________________________________________________________________________________________________
 
-#include "core/ControlHandler.hpp"
-#include "core/EnvironmentGenerator.hpp"
-#include "core/GhostsBehaviour.hpp"
+#include "../core/ControlHandler.hpp"
+#include "../core/EnvironmentGenerator.hpp"
+#include "../core/GhostsBehaviour.hpp"
+#include "../core/ModelHandler.hpp"
 
 struct GhostCollection {
 
@@ -150,7 +154,9 @@ struct GhostCollection {
         blinky("Blinky", glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(11.5f, 0.5f, 14.0f), 1.0f, 1.0f),
         pinky("Pinky", glm::vec3(1.0f, 0.7f, 0.9f), glm::vec3(14.5f, 0.5f, 12.0f), 1.0f, 1.0f, 4),
         inky("Inky", glm::vec3(0.5f, 0.96f, 1.0f), glm::vec3(14.5f, 0.5f, 14.0f), 1.0f, 1.0f, 2),
-        clyde("Clyde", glm::vec3(0.91f, 0.7f, 0.0f), glm::vec3(14.5f, 0.5f, 16.0f), 1.0f, 1.0f) { setMazeInGhosts(maze); }
+        clyde("Clyde", glm::vec3(0.91f, 0.7f, 0.0f), glm::vec3(14.5f, 0.5f, 16.0f), 1.0f, 1.0f) {
+        setMazeInGhosts(maze);
+    }
 
     void moveAllGhosts(float deltaTime, glm::vec3 playerPosition, glm::vec3 playerDirection) {
         blinky.move(deltaTime, playerPosition);
@@ -162,11 +168,11 @@ struct GhostCollection {
     void setMazeInGhosts(std::vector<std::vector<int>> maze) { blinky.setMaze(maze); pinky.setMaze(maze); inky.setMaze(maze); clyde.setMaze(maze); }
 };
 
-glm::vec3 PacmanStartingPosition(23.5f, 0.6f, 14.0f); // Set default Pacman starting position;
+glm::vec3 PacmanStartingPosition(8.0f, pacmanHeight, 0.0f); // Set default Pacman starting position in world;
 
-ViewCameraControl viewCamera(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, 0.0f); // Controller that handles view camera. Gets position, up, yaw, pitch;
-MazeGenerator originalMazeGen; // Object that generates and holds maze info;
-GhostCollection ghosts(originalMazeGen.getMaze()); // Enemy ghosts holder;
+ViewCameraControl viewCamera = ViewCameraControl(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, 0.0f, 5.0f); // Controller that handles view camera. Gets position, up, yaw, pitch;
+EnvironmentGenerator envGenerator;
+GhostCollection ghosts = GhostCollection(envGenerator.mazeGenerator.getMaze()); // Enemy ghosts holder;
 
 float deltaTime = 0.0f; // Time between current frame and last frame;
 float lastFrame = 0.0f; // Time of last frame;
@@ -234,14 +240,18 @@ const bool enableValidationLayers = true;
 class Pacman3D {
 
     public:
+
         void run() {
             initWindow();
+            otherInitializations();
+            loadModelHandlers();
             initVulkan();
             mainLoop();
             cleanup();
         }
 
-    private:
+    protected:
+
         GLFWwindow* window; // GLFW window;
         VkInstance instance; // Vulkan instance;
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE; // Physical device;
@@ -270,25 +280,7 @@ class Pacman3D {
 
         bool framebufferResized = false; // Has the window been resized?;
 
-        std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
-        VkBuffer vertexBuffer; // Vertex buffer;
-        VkDeviceMemory vertexBufferMemory; // Vertex buffer memory;
-        VkBuffer indexBuffer; // Index buffer;
-        VkDeviceMemory indexBufferMemory; // Index buffer memory;
-
-        std::vector<VkBuffer> uniformBuffers;
-        std::vector<VkDeviceMemory> uniformBuffersMemory;
-        std::vector<void*> uniformBuffersMapped;
-
         VkDescriptorPool descriptorPool;
-        std::vector<VkDescriptorSet> descriptorSets;
-
-        uint32_t mipLevels;
-        VkImage textureImage;
-        VkDeviceMemory textureImageMemory;
-        VkImageView textureImageView;
-        VkSampler textureSampler;
 
         VkImage depthImage;
         VkDeviceMemory depthImageMemory;
@@ -298,6 +290,9 @@ class Pacman3D {
         VkImage colorImage;
         VkDeviceMemory colorImageMemory;
         VkImageView colorImageView;
+
+        // Contains ModelHandlers to handle all model needed to be loaded;
+        std::vector<ModelHandler> modelHandlers;
 
 
         void initWindow() {
@@ -334,27 +329,102 @@ class Pacman3D {
             createColorResources();
             createDepthResources();
             createFramebuffers(); // Create the framebuffers;
-            createTextureImage(); // LOAD IMAGES;
-            createTextureImageView(); // Create texture image view;
-            createTextureSampler(); // Create sampler;
-            loadModel();
-            createVertexBuffer(); // Create vertex buffer;
-            createIndexBuffer(); // Create index buffer;
-            createUniformBuffers(); // Create uniform buffer;
+
             createDescriptorPool(); // Create descriptor pool;
-            createDescriptorSets();
+
+            for (ModelHandler& handler : modelHandlers) {
+
+                createTextureImage(handler); // LOAD IMAGES;
+                createTextureImageView(handler); // Create texture image view;
+                createTextureSampler(handler); // Create sampler;
+
+                loadModel(handler);
+
+                createVertexBuffer(handler); // Create vertex buffer;
+                createIndexBuffer(handler); // Create index buffer;
+                createUniformBuffers(handler); // Create uniform buffer;
+                createDescriptorSets(handler); // Create descriptor set;
+            }
+
             createCommandBuffers(); // Create command buffer;
             createSyncObjects();
+        }
 
-
-
-            // My code:
-
+        // Initialize other things such as callbacks;
+        void otherInitializations() {
             // glfwSetCursorPos(window, WIDTH / 2.0, HEIGHT / 2.0); // Put cursor at the center of the window;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             glfwSetCursorPosCallback(window, mouse_callback); // Set the callback to handle the mouse updates;
             // glfwSetMouseButtonCallback(window, mouse_button_callback); // Set the callback for the mouse only if the left button gets clicked;
         }
+
+        // Create the model handlers for needed models. Temporary, will be done with a JSON later;
+        void loadModelHandlers() {
+
+            ModelHandler labirinthHandler = ModelHandler(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "", "textures/test/BlackBrickedWall.png");
+            labirinthHandler.vertices = envGenerator.mazeGenerator.getMazeVertices();
+            labirinthHandler.indices = envGenerator.mazeGenerator.getMazeIndices();
+
+            ModelHandler floorHandler = ModelHandler(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "", "textures/test/MushyFloor.png");
+            floorHandler.vertices = envGenerator.floorGenerator.getFloorVertices();
+            floorHandler.indices = envGenerator.floorGenerator.getFloorIndices();
+
+            ModelHandler skyHandler = ModelHandler(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "", "textures/test/Sky.png");
+            skyHandler.vertices = envGenerator.skyGenerator.geSkyVertices();
+            skyHandler.indices = envGenerator.skyGenerator.getSkyIndices();
+
+
+
+            ModelHandler blinkyHandler = ModelHandler(
+                generateModelMatrix(glm::vec3(-4.0f, ghostsHeight, 0.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
+                "models/ghostModel.obj",
+                "textures/ghosts/BlinkyTex.png"
+            );
+
+            ModelHandler pinkyHandler = ModelHandler(
+                generateModelMatrix(glm::vec3(-1.0f, ghostsHeight, 2.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
+                "models/ghostModel.obj",
+                "textures/ghosts/PinkyTex.png"
+            );
+
+            ModelHandler inkyHandler = ModelHandler(
+                generateModelMatrix(glm::vec3(-1.0f, ghostsHeight, 0.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
+                "models/ghostModel.obj",
+                "textures/ghosts/InkyTex.png"
+            );
+
+            ModelHandler clydeHandler = ModelHandler(
+                generateModelMatrix(glm::vec3(-1.0f, ghostsHeight, -2.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
+                "models/ghostModel.obj",
+                "textures/ghosts/ClydeTex.png"
+            );
+
+
+            modelHandlers.push_back(labirinthHandler);
+            modelHandlers.push_back(floorHandler);
+            modelHandlers.push_back(skyHandler);
+
+            modelHandlers.push_back(blinkyHandler);
+            modelHandlers.push_back(pinkyHandler);
+            modelHandlers.push_back(inkyHandler);
+            modelHandlers.push_back(clydeHandler);
+        }
+
+        // Generate model matrix with translation rotation and scale using yaw pitch and roll for rotation and single float per uniform scaling;
+        glm::mat4 generateModelMatrix(glm::vec3 position, float yaw, float pitch, float roll, float scale) {
+
+			glm::mat4 model = glm::mat4(1.0f);
+
+			model = glm::translate(model, position);
+			// model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+			// model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+			// model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f));
+			model = glm::scale(model, glm::vec3(scale));
+
+			return model;
+		}
+       
+
 
 
         void mainLoop() {
@@ -365,8 +435,9 @@ class Pacman3D {
                 lastFrame = currentFrame;
 
                 processInput(window); // Use the input received from keyboard this frame to update the view matrix;
+                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front);
 
-                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // wHY IS IT NOT WORKIIIINGNNNNNGNGNGNGGG
+
                 // printf("Position: %f, %f, %f;\n", viewCamera.position.x, viewCamera.position.y, viewCamera.position.z);
 
                 drawFrame();
@@ -388,23 +459,32 @@ class Pacman3D {
 
             cleanupSwapChain();
 
-            vkDestroySampler(device, textureSampler, nullptr);
-            vkDestroyImageView(device, textureImageView, nullptr);
-            vkDestroyImage(device, textureImage, nullptr);
-            vkFreeMemory(device, textureImageMemory, nullptr);
 
-            // Clear uniform buffers;
-            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-                vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+            // For each model, cleanup their variables;
+            for (ModelHandler& handler : modelHandlers) {
+
+                vkDestroySampler(device, handler.textureSampler, nullptr);
+                vkDestroyImageView(device, handler.textureImageView, nullptr);
+                vkDestroyImage(device, handler.textureImage, nullptr);
+                vkFreeMemory(device, handler.textureImageMemory, nullptr);
+
+                // Clear uniform buffers;
+                for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                    vkDestroyBuffer(device, handler.uniformBuffers[i], nullptr);
+                    vkFreeMemory(device, handler.uniformBuffersMemory[i], nullptr);
+                }
+
+                // Old descriptorPool and descriptorSetLayout cleanup -- Check if still works
+
+                vkDestroyBuffer(device, handler.indexBuffer, nullptr); // Destroy vertex buffer;
+                vkFreeMemory(device, handler.indexBufferMemory, nullptr);
+                vkDestroyBuffer(device, handler.vertexBuffer, nullptr); // Destroy index buffer;
+                vkFreeMemory(device, handler.vertexBufferMemory, nullptr);
             }
 
-            vkDestroyDescriptorPool(device, descriptorPool, nullptr); // Destroy descriptor pool and sets with them;
             vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr); // Clear descriptor set;
-            vkDestroyBuffer(device, indexBuffer, nullptr); // Destroy vertex buffer;
-            vkFreeMemory(device, indexBufferMemory, nullptr);
-            vkDestroyBuffer(device, vertexBuffer, nullptr); // Destroy index buffer;
-            vkFreeMemory(device, vertexBufferMemory, nullptr);
+            vkDestroyDescriptorPool(device, descriptorPool, nullptr); // Destroy descriptor pool and sets with them;
+
 
             vkDestroyPipeline(device, graphicsPipeline, nullptr); // Destroy Pipeline;
             vkDestroyPipelineLayout(device, pipelineLayout, nullptr); // Destroy PipelineLayout;
@@ -416,10 +496,10 @@ class Pacman3D {
                 vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
                 vkDestroyFence(device, inFlightFences[i], nullptr);
             }
-            
+
             vkDestroyCommandPool(device, commandPool, nullptr); // Destroy Command pool;
             vkDestroyDevice(device, nullptr); // Clear the virtual device created in createLogicalDevice();
-            
+
             vkDestroySurfaceKHR(instance, surface, nullptr); // Destroy surfaces created;
             vkDestroyInstance(instance, nullptr); // Destroy Vulkan instance;
 
@@ -427,6 +507,7 @@ class Pacman3D {
             glfwTerminate(); // Terminate GLFW;
         }
 
+        // Create the vulkan instance;
         void createInstance() {
 
             // Check the presence of the needed validation layers with the function defined below;
@@ -494,6 +575,8 @@ class Pacman3D {
             }
             return true;
         }
+
+
 
         // START1 - Physical Device: put this section in a separate area to cleanuo the code (another class maybe);
 
@@ -570,7 +653,7 @@ class Pacman3D {
         // Find which queue families are supported by the device and which supports the command we want to use. (For now it finds the graphics queue family);
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
             QueueFamilyIndices indices;
-        
+
             uint32_t queueFamilyCount = 0;
             vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
@@ -587,11 +670,14 @@ class Pacman3D {
                 vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
                 if (presentSupport) { indices.presentFamily = i; }
 
-                i ++;
+                i++;
             }
             return indices;
         }
+
         // END1
+
+
 
         // START2 - Virtual Device
 
@@ -652,7 +738,6 @@ class Pacman3D {
         }
 
         // END3 ________________________________________________________________________________________________________________________________________________________
-
 
 
 
@@ -730,7 +815,7 @@ class Pacman3D {
         // Pick best possible presentation mode: VK_PRESENT_MODE_MAILBOX_KHR is triple buffering;
         VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
             for (const auto& availablePresentMode : availablePresentModes) {
-                if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) { return availablePresentMode;  }
+                if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) { return availablePresentMode; }
             }
             return VK_PRESENT_MODE_FIFO_KHR;
         }
@@ -756,7 +841,8 @@ class Pacman3D {
         }
 
         // END4 __________________________________________________________________________________________________________________________________
-        
+
+
 
         // START5 - Image views
 
@@ -766,7 +852,7 @@ class Pacman3D {
         }
 
         // END5 _________________________________________________________________________________________________________________
-        
+
 
 
         // START6 - Pipeline
@@ -1113,6 +1199,7 @@ class Pacman3D {
 
         // Writes command we want inside the buffer;
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             beginInfo.flags = 0; // Optional - How are we going to use the command buffer;
@@ -1138,13 +1225,16 @@ class Pacman3D {
             vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE); // Being render pass: VK_SUBPASS_CONTENTS_INLINE used to use only first level framebuffers;
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline); // Bind graphics pipeline;
 
-            VkBuffer vertexBuffers[] = { vertexBuffer };
-            VkDeviceSize offsets[] = { 0 };
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            for (ModelHandler& handler : modelHandlers) {
+                VkBuffer vertexBuffers[] = { handler.vertexBuffer };
+                VkDeviceSize offsets[] = { 0 };
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+                vkCmdBindIndexBuffer(commandBuffer, handler.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+                    &handler.descriptorSets[currentFrame], 0, nullptr);
+                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(handler.indices.size()), 1, 0, 0, 0);
+            }
 
             // Set dynamic viewport;
             VkViewport viewport{};
@@ -1163,7 +1253,7 @@ class Pacman3D {
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
             // ISSUE DRAWING OF TRIANGLE;
-            vkCmdDraw(commandBuffer, 3, 1, 0, 0); // VertexCount, InstanceCount, FirstVertex, FirstInstance;
+            vkCmdDraw(commandBuffer, 3, 1, 0, 0); // VertexCount, InstanceCount, FirstVertex, FirstInstance; TODO - Is it right for multiple models????
 
             vkCmdEndRenderPass(commandBuffer);
             if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) { throw std::runtime_error("failed to record command buffer!"); }
@@ -1177,6 +1267,7 @@ class Pacman3D {
 
         // Draw the frames of our app;
         void drawFrame() {
+
             // Used to not go in a deadlock using fences;
             vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -1186,12 +1277,13 @@ class Pacman3D {
             if (result == VK_ERROR_OUT_OF_DATE_KHR) { recreateSwapChain(); return; }
             else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) { throw std::runtime_error("failed to acquire swap chain image!"); }
 
-            updateUniformBuffer(currentFrame); // Update uniform buffer;
+            for (ModelHandler& handler : modelHandlers) { updateUniformBuffer(handler, currentFrame); } // Update uniform buffer;
 
             // Only reset the fence if we are submitting work
             vkResetFences(device, 1, &inFlightFences[currentFrame]);
             vkResetCommandBuffer(commandBuffers[currentFrame], 0); // Reset the command buffer for recording new commands;
-            recordCommandBuffer(commandBuffers[currentFrame], imageIndex); // Record commands in buffer;
+            
+            recordCommandBuffer(commandBuffers[currentFrame], imageIndex); // Record commandsBuffer once for each model. This also calls the Draw function;
 
             // Submit the command buffer for execution in the graphics queue;
             VkSubmitInfo submitInfo{};
@@ -1282,7 +1374,7 @@ class Pacman3D {
             vkDestroySwapchainKHR(device, swapChain, nullptr);
         }
 
-        // END10 _______________________________________________________________________________________________________________________________________
+        // END10 __________________________________________________________________________________________________________________________________________________________________________________
 
 
 
@@ -1293,15 +1385,15 @@ class Pacman3D {
             app->framebufferResized = true;
         }
 
-        // END11
+        // END11 ___________________________________________________________________________________________________________________________________________________________________________________
 
 
 
         // START12 - Vertex Buffer & Index Buffer;
 
         // Create vertex buffer;
-        void createVertexBuffer() {
-            VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+        void createVertexBuffer(ModelHandler& handler) {
+            VkDeviceSize bufferSize = sizeof(handler.vertices[0]) * handler.vertices.size();
 
             VkBuffer stagingBuffer;
             VkDeviceMemory stagingBufferMemory;
@@ -1310,19 +1402,19 @@ class Pacman3D {
             // Transfer data from the const we defined to the buffer;
             void* data;
             vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-            memcpy(data, vertices.data(), (size_t)bufferSize);
+            memcpy(data, handler.vertices.data(), (size_t)bufferSize);
             vkUnmapMemory(device, stagingBufferMemory);
 
-            createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-            copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, handler.vertexBuffer, handler.vertexBufferMemory);
+            copyBuffer(stagingBuffer, handler.vertexBuffer, bufferSize);
 
             vkDestroyBuffer(device, stagingBuffer, nullptr);
             vkFreeMemory(device, stagingBufferMemory, nullptr);
         }
 
         // Create index buffer;
-        void createIndexBuffer() {
-            VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+        void createIndexBuffer(ModelHandler& handler) {
+            VkDeviceSize bufferSize = sizeof(handler.indices[0]) * handler.indices.size();
 
             VkBuffer stagingBuffer;
             VkDeviceMemory stagingBufferMemory;
@@ -1330,12 +1422,12 @@ class Pacman3D {
 
             void* data;
             vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-            memcpy(data, indices.data(), (size_t)bufferSize);
+            memcpy(data, handler.indices.data(), (size_t)bufferSize);
             vkUnmapMemory(device, stagingBufferMemory);
 
-            createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, handler.indexBuffer, handler.indexBufferMemory);
 
-            copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+            copyBuffer(stagingBuffer, handler.indexBuffer, bufferSize);
 
             vkDestroyBuffer(device, stagingBuffer, nullptr);
             vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -1391,6 +1483,7 @@ class Pacman3D {
         // START13 - Matrices for vertices;
 
         void createDescriptorSetLayout() {
+
             VkDescriptorSetLayoutBinding uboLayoutBinding{};
             uboLayoutBinding.binding = 0;
             uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1415,37 +1508,33 @@ class Pacman3D {
             if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor set layout!"); }
         }
 
-        void createUniformBuffers() {
+        void createUniformBuffers(ModelHandler& handler) {
             VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-            uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-            uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-            uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+            handler.uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+            handler.uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+            handler.uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
                 createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]); // Cretae buffer;
-                vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]); // Map buffer just after creation to get pointer to it (persistent mapping);
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, handler.uniformBuffers[i], handler.uniformBuffersMemory[i]); // Cretae buffer;
+                vkMapMemory(device, handler.uniformBuffersMemory[i], 0, bufferSize, 0, &handler.uniformBuffersMapped[i]); // Map buffer just after creation to get pointer to it (persistent mapping);
             }
         }
 
         // Update uniform buffer by rotating the rectangle by 90 degrees every second;
-        void updateUniformBuffer(uint32_t currentImage) {
-            static auto startTime = std::chrono::high_resolution_clock::now();
-            auto currentTime = std::chrono::high_resolution_clock::now();
-            float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        void updateUniformBuffer(ModelHandler& handler, uint32_t currentImage) {
 
-            UniformBufferObject ubo{};
+            UniformBufferObject ubo { };
 
-            ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotation on z-axis using time;
+            ubo.model = handler.modelMatrix;
 
-            // ubo.view = glm::lookAt(glm::vec3(4.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Look-at matrix from 45 degrees up;
             ubo.view = viewCamera.getViewMatrix();
 
             ubo.proj = glm::perspective(glm::radians(60.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f); // Perspective proj;
             ubo.proj[1][1] *= -1; // OpenGL standard to Vulkan;
 
-            memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo)); // Copy the UBO in the uniform buffer;
+            memcpy(handler.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo)); // Copy the UBO in the uniform buffer;
         }
 
         // END13 _______________________________________________________________________________________________________________________________________________________________
@@ -1455,9 +1544,12 @@ class Pacman3D {
         // START14 - Descriptor pool and sets;
 
         void createDescriptorPool() {
+
+            size_t totalDescriptorSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * modelHandlers.size();
+
             VkDescriptorPoolSize poolSize{};
             poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+            poolSize.descriptorCount = totalDescriptorSets;
 
             std::array<VkDescriptorPoolSize, 2> poolSizes{};
             poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1469,12 +1561,13 @@ class Pacman3D {
             poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
             poolInfo.pPoolSizes = poolSizes.data();
-            poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+            poolInfo.maxSets = totalDescriptorSets;
 
             if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor pool!"); }
         }
 
-        void createDescriptorSets() {
+        void createDescriptorSets(ModelHandler& handler) {
+
             std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
             VkDescriptorSetAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1482,25 +1575,25 @@ class Pacman3D {
             allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
             allocInfo.pSetLayouts = layouts.data();
 
-            descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-            if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) { throw std::runtime_error("failed to allocate descriptor sets!"); }
+            handler.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+            if (vkAllocateDescriptorSets(device, &allocInfo, handler.descriptorSets.data()) != VK_SUCCESS) { throw std::runtime_error("failed to allocate descriptor sets!"); }
 
             // Config each descriptor;
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
                 VkDescriptorBufferInfo bufferInfo{};
-                bufferInfo.buffer = uniformBuffers[i];
+                bufferInfo.buffer = handler.uniformBuffers[i];
                 bufferInfo.offset = 0;
                 bufferInfo.range = sizeof(UniformBufferObject);
 
                 VkDescriptorImageInfo imageInfo{};
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfo.imageView = textureImageView;
-                imageInfo.sampler = textureSampler;
+                imageInfo.imageView = handler.textureImageView;
+                imageInfo.sampler = handler.textureSampler;
 
                 std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
                 descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[0].dstSet = descriptorSets[i];
+                descriptorWrites[0].dstSet = handler.descriptorSets[i];
                 descriptorWrites[0].dstBinding = 0;
                 descriptorWrites[0].dstArrayElement = 0;
                 descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1508,7 +1601,7 @@ class Pacman3D {
                 descriptorWrites[0].pBufferInfo = &bufferInfo;
 
                 descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[1].dstSet = descriptorSets[i];
+                descriptorWrites[1].dstSet = handler.descriptorSets[i];
                 descriptorWrites[1].dstBinding = 1;
                 descriptorWrites[1].dstArrayElement = 0;
                 descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1525,11 +1618,13 @@ class Pacman3D {
 
         // START15 - Load images with stb;
 
+        void createTextureImage(ModelHandler& handler) {
 
-        void createTextureImage(const std::string texturePath = BASE_TEXTURE_PATH) {
+            std::string texturePath = handler.texturePath != "" ? handler.texturePath : TEXTURE_PATH;
+
             int texWidth, texHeight, texChannels;
             stbi_uc* pixels = stbi_load(texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-            mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+            handler.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
             VkDeviceSize imageSize = texWidth * texHeight * 4;
 
             if (!pixels) { throw std::runtime_error("failed to load texture image!"); }
@@ -1545,12 +1640,12 @@ class Pacman3D {
 
             stbi_image_free(pixels);
 
-            createImage(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+            createImage(texWidth, texHeight, handler.mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, handler.textureImage, handler.textureImageMemory);
 
-            transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-            copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-            generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
+            transitionImageLayout(handler.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, handler.mipLevels);
+            copyBufferToImage(stagingBuffer, handler.textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+            generateMipmaps(handler.textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, handler.mipLevels);
 
             // Cleanup
             vkDestroyBuffer(device, stagingBuffer, nullptr);
@@ -1675,7 +1770,7 @@ class Pacman3D {
             vkCmdPipelineBarrier(
                 commandBuffer,
                 sourceStage,
-               destinationStage,
+                destinationStage,
                 0,
                 0, nullptr,
                 0, nullptr,
@@ -1730,9 +1825,9 @@ class Pacman3D {
             return imageView;
         }
 
-        void createTextureImageView() { textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels); }
+        void createTextureImageView(ModelHandler& handler) { handler.textureImageView = createImageView(handler.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, handler.mipLevels); }
 
-        void createTextureSampler() {
+        void createTextureSampler(ModelHandler& handler) {
             VkPhysicalDeviceProperties properties{};
             vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 
@@ -1751,10 +1846,10 @@ class Pacman3D {
             samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
             samplerInfo.minLod = 0.0f; // Optional
-            samplerInfo.maxLod = static_cast<float>(mipLevels);
+            samplerInfo.maxLod = static_cast<float>(handler.mipLevels);
             samplerInfo.mipLodBias = 0.0f; // Optional
 
-            if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) { throw std::runtime_error("failed to create texture sampler!"); }
+            if (vkCreateSampler(device, &samplerInfo, nullptr, &handler.textureSampler) != VK_SUCCESS) { throw std::runtime_error("failed to create texture sampler!"); }
         }
 
         // END15 _______________________________________________________________________________________________________________________________________________________________________________
@@ -1798,55 +1893,61 @@ class Pacman3D {
         // END16 ______________________________________________________________________________________________________________________________________________________________________
 
 
+
         // START17 - Load model
 
-        //void loadModel() {
+        void loadModel(ModelHandler& handler) {
 
-            //float angleInRadians = glm::radians(-90.0f); // Convert angle to radians if necessary
-            //glm::vec3 rotationAxis = glm::vec3(1.0f, 0.0f, 0.0f); // Rotation axis (for example, rotating around the Y-axis)
-            //glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), angleInRadians, rotationAxis);
+            if (handler.modelPath != "") {
+
+                glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(1.0f));
 
 
-            //tinyobj::attrib_t attrib;
-            //std::vector<tinyobj::shape_t> shapes;
-            //std::vector<tinyobj::material_t> materials;
-            //std::string warn, err;
+                tinyobj::attrib_t attrib;
+                std::vector<tinyobj::shape_t> shapes;
+                std::vector<tinyobj::material_t> materials;
+                std::string warn, err;
 
-            //if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) { throw std::runtime_error("Error: " + warn + err); }
+                if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, handler.modelPath.c_str())) { throw std::runtime_error("Error: " + warn + err); }
 
-            //std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+                std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 
-            //for (const auto& shape : shapes) {
-            //    for (const auto& index : shape.mesh.indices) {
-            //        Vertex vertex{};
+                for (const auto& shape : shapes) {
+                    for (const auto& index : shape.mesh.indices) {
+                        Vertex vertex{};
 
-            //        vertex.pos = {
-            //            attrib.vertices[3 * index.vertex_index + 0],
-            //            attrib.vertices[3 * index.vertex_index + 1],
-            //            attrib.vertices[3 * index.vertex_index + 2]
-            //        };
+                        vertex.pos = {
+                            attrib.vertices[3 * index.vertex_index + 0],
+                            attrib.vertices[3 * index.vertex_index + 1],
+                            attrib.vertices[3 * index.vertex_index + 2]
+                        };
 
-            //        glm::vec4 rotatedPosition = rotationMatrix * glm::vec4(vertex.pos, 1.0f);
-            //        vertex.pos = glm::vec3(rotatedPosition);
+                        glm::vec4 rotatedPosition = rotationMatrix * glm::vec4(vertex.pos, 1.0f);
+                        vertex.pos = glm::vec3(rotatedPosition);
 
-            //        vertex.texCoord = {
-            //            attrib.texcoords[2 * index.texcoord_index + 0],
-            //            1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-            //        };
+                        vertex.texCoord = {
+                            attrib.texcoords[2 * index.texcoord_index + 0],
+                            1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                        };
 
-            //        vertex.color = { 1.0f, 1.0f, 1.0f };
+                        vertex.color = { 1.0f, 1.0f, 1.0f };
 
-            //        if (uniqueVertices.count(vertex) == 0) {
-            //            uniqueVertices[vertex] = static_cast<uint32_t>(uniqueVertices.size());
-            //            vertices.push_back(vertex);
-            //        }
+                        if (uniqueVertices.count(vertex) == 0) {
+                            uniqueVertices[vertex] = static_cast<uint32_t>(uniqueVertices.size());
+                            handler.vertices.push_back(vertex);
+                        }
 
-            //        indices.push_back(uniqueVertices[vertex]);
-            //    }
-            //}
-        //}
+                        handler.indices.push_back(uniqueVertices[vertex]);
+                    }
+                }
+            }
+
+            if (handler.vertices.empty() || handler.indices.empty()) { printf("Error, it seems you have not loaded correctly the model vertices or indices;\n"); }
+        }
 
         // END17 ______________________________________________________________________________________________________________________________________________________________________
+        
+
 
         // START18 - Mipmaps
 
@@ -1879,10 +1980,10 @@ class Pacman3D {
                 barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
                 vkCmdPipelineBarrier(commandBuffer,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                0, nullptr,
-                0, nullptr,
-                1, &barrier);
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier);
 
                 VkImageBlit blit{};
                 blit.srcOffsets[0] = { 0, 0, 0 };
@@ -1899,10 +2000,10 @@ class Pacman3D {
                 blit.dstSubresource.layerCount = 1;
 
                 vkCmdBlitImage(commandBuffer,
-                image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1, &blit,
-                VK_FILTER_LINEAR);
+                    image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    1, &blit,
+                    VK_FILTER_LINEAR);
 
                 barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
                 barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -1910,10 +2011,10 @@ class Pacman3D {
                 barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
                 vkCmdPipelineBarrier(commandBuffer,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-                0, nullptr,
-                0, nullptr,
-                1, &barrier);
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier);
 
                 if (mipWidth > 1) mipWidth /= 2;
                 if (mipHeight > 1) mipHeight /= 2;
@@ -1926,10 +2027,10 @@ class Pacman3D {
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
             vkCmdPipelineBarrier(commandBuffer,
-            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-            0, nullptr,
-            0, nullptr,
-            1, &barrier);
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier);
 
             endSingleTimeCommands(commandBuffer);
         }
@@ -1967,12 +2068,5 @@ class Pacman3D {
         // END19 ___________________________________________________________________________________________________________________________________________________________________________
 
 
-        // MY CODE SECTION ________________________________________________________________________________________________________________________________________________________________
-
-        // Temporary?
-        void loadModel() {
-            vertices = originalMazeGen.getMazeVertices();
-            indices = originalMazeGen.getMazeIndices();
-        }
 
 };

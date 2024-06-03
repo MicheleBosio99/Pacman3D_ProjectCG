@@ -749,10 +749,16 @@
     <ClInclude Include="core\GhostsBehaviour.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\MazeGenerator.hpp">
+    <ClInclude Include="core\EnvironmentGenerator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\ControlHandler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\MyStarter.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ModelHandler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

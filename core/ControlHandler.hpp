@@ -36,8 +36,8 @@ class ViewCameraControl {
         float fixedHeight; // Height at which the player camera is. It is fixed so to have a "walking" movement;
 
         // Constructor;
-        ViewCameraControl(glm::vec3 startPosition, glm::vec3 startUp, float startYaw, float startPitch)
-            : front(glm::vec3(0.0f, 0.0f, 1.0f)), movementSpeed(2.5f), mouseSensitivity(0.08f), fixedHeight(startPosition.y) {
+        ViewCameraControl(glm::vec3 startPosition, glm::vec3 startUp, float startYaw, float startPitch, float movementSpeed = 2.5f)
+            : front(glm::vec3(0.0f, 0.0f, 1.0f)), movementSpeed(movementSpeed), mouseSensitivity(0.08f), fixedHeight(startPosition.y) {
 
             position = startPosition;
             worldUp = startUp;
@@ -54,8 +54,11 @@ class ViewCameraControl {
         void processKeyboardInput(Direction direction, float deltaTime) {
             float velocity = movementSpeed * deltaTime;
 
-            if (direction == FORWARD) { position += front * velocity; }
-            if (direction == BACKWARD) { position -= front * velocity; }
+            // Use this new movement so speed is not affected by watching direction;
+            glm::vec3 movement = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
+
+            if (direction == FORWARD) { position += movement * velocity; }
+            if (direction == BACKWARD) { position -= movement * velocity; }
             if (direction == LEFT) { position -= right * velocity; }
             if (direction == RIGHT) { position += right * velocity; }
 
