@@ -143,36 +143,9 @@ static std::vector<char> readFile(const std::string& filename) {
 #include "../core/GhostsBehaviour.hpp"
 #include "../core/ModelHandler.hpp"
 
-struct GhostCollection {
-
-    ChaserGhost blinky;
-    AmbusherGhost pinky;
-    AmbusherGhost inky;
-    ProtectorGhost clyde;
-
-    GhostCollection(std::vector<std::vector<int>> maze) :
-        blinky("Blinky", glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(11.5f, 0.5f, 14.0f), 1.0f, 1.0f),
-        pinky("Pinky", glm::vec3(1.0f, 0.7f, 0.9f), glm::vec3(14.5f, 0.5f, 12.0f), 1.0f, 1.0f, 4),
-        inky("Inky", glm::vec3(0.5f, 0.96f, 1.0f), glm::vec3(14.5f, 0.5f, 14.0f), 1.0f, 1.0f, 2),
-        clyde("Clyde", glm::vec3(0.91f, 0.7f, 0.0f), glm::vec3(14.5f, 0.5f, 16.0f), 1.0f, 1.0f) {
-        setMazeInGhosts(maze);
-    }
-
-    void moveAllGhosts(float deltaTime, glm::vec3 playerPosition, glm::vec3 playerDirection) {
-        blinky.move(deltaTime, playerPosition);
-        pinky.move(deltaTime, playerPosition, playerDirection);
-        inky.move(deltaTime, playerPosition, playerDirection);
-        clyde.move(deltaTime, playerPosition);
-    }
-
-    void setMazeInGhosts(std::vector<std::vector<int>> maze) { blinky.setMaze(maze); pinky.setMaze(maze); inky.setMaze(maze); clyde.setMaze(maze); }
-};
-
 glm::vec3 PacmanStartingPosition(8.0f, pacmanHeight, 0.0f); // Set default Pacman starting position in world;
 
 ViewCameraControl viewCamera = ViewCameraControl(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, 0.0f, 5.0f); // Controller that handles view camera. Gets position, up, yaw, pitch;
-EnvironmentGenerator envGenerator;
-GhostCollection ghosts = GhostCollection(envGenerator.mazeGenerator.getMaze()); // Enemy ghosts holder;
 
 float deltaTime = 0.0f; // Time between current frame and last frame;
 float lastFrame = 0.0f; // Time of last frame;
@@ -219,8 +192,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) { isMousePressed = true; firstMouse = true; }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) { isMousePressed = false; }
 }
-
-
 
 
 
@@ -292,7 +263,9 @@ class Pacman3D {
         VkImageView colorImageView;
 
         // Contains ModelHandlers to handle all model needed to be loaded;
-        std::vector<ModelHandler> modelHandlers;
+        std::vector<std::unique_ptr<ModelHandler>> modelHandlers;
+        EnvironmentGenerator envGenerator; // Environment generator;
+        GhostCollection ghosts = GhostCollection(envGenerator.mazeGenerator.getMaze()); // Enemy ghosts holder;
 
 
         void initWindow() {
@@ -303,15 +276,14 @@ class Pacman3D {
 
             int monitorCount;
             GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
-            GLFWmonitor* primaryMonitor = monitorCount <= 1 ? monitors[0] : monitors[1];
+            GLFWmonitor* primaryMonitor = monitorCount == 1 ? monitors[0] : monitors[1];
 
-            //GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
             const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
             window = glfwCreateWindow(mode->width, mode->height, "Pacman3D", primaryMonitor, NULL); // Create the window (width, height, name, monitor, dc);
             glfwSetWindowUserPointer(window, this);
             glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-        }
+        } 
 
 
         void initVulkan() {
@@ -332,18 +304,18 @@ class Pacman3D {
 
             createDescriptorPool(); // Create descriptor pool;
 
-            for (ModelHandler& handler : modelHandlers) {
+            for (const auto& handler : modelHandlers) {
 
-                createTextureImage(handler); // LOAD IMAGES;
-                createTextureImageView(handler); // Create texture image view;
-                createTextureSampler(handler); // Create sampler;
+                createTextureImage(*handler); // LOAD IMAGES;
+                createTextureImageView(*handler); // Create texture image view;
+                createTextureSampler(*handler); // Create sampler;
 
-                loadModel(handler);
+                loadModel(*handler);
 
-                createVertexBuffer(handler); // Create vertex buffer;
-                createIndexBuffer(handler); // Create index buffer;
-                createUniformBuffers(handler); // Create uniform buffer;
-                createDescriptorSets(handler); // Create descriptor set;
+                createVertexBuffer(*handler); // Create vertex buffer;
+                createIndexBuffer(*handler); // Create index buffer;
+                createUniformBuffers(*handler); // Create uniform buffer;
+                createDescriptorSets(*handler); // Create descriptor set;
             }
 
             createCommandBuffers(); // Create command buffer;
@@ -361,53 +333,57 @@ class Pacman3D {
         // Create the model handlers for needed models. Temporary, will be done with a JSON later;
         void loadModelHandlers() {
 
-            ModelHandler labirinthHandler = ModelHandler(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "", "textures/test/BlackBrickedWall.png");
-            labirinthHandler.vertices = envGenerator.mazeGenerator.getMazeVertices();
-            labirinthHandler.indices = envGenerator.mazeGenerator.getMazeIndices();
+            auto labirinthHandler = std::make_unique<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/BlackBrickedWall.png");
+            labirinthHandler->vertices = envGenerator.mazeGenerator.getMazeVertices();
+            labirinthHandler->indices = envGenerator.mazeGenerator.getMazeIndices();
 
-            ModelHandler floorHandler = ModelHandler(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "", "textures/test/MushyFloor.png");
-            floorHandler.vertices = envGenerator.floorGenerator.getFloorVertices();
-            floorHandler.indices = envGenerator.floorGenerator.getFloorIndices();
+            auto floorHandler = std::make_unique<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/MushyFloor.png");
+            floorHandler->vertices = envGenerator.floorGenerator.getFloorVertices();
+            floorHandler->indices = envGenerator.floorGenerator.getFloorIndices();
 
-            ModelHandler skyHandler = ModelHandler(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "", "textures/test/Sky.png");
-            skyHandler.vertices = envGenerator.skyGenerator.geSkyVertices();
-            skyHandler.indices = envGenerator.skyGenerator.getSkyIndices();
+            auto skyHandler = std::make_unique<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/Sky.png");
+            skyHandler->vertices = envGenerator.skyGenerator.geSkyVertices();
+            skyHandler->indices = envGenerator.skyGenerator.getSkyIndices();
 
 
 
-            ModelHandler blinkyHandler = ModelHandler(
+            auto blinkyHandler = std::make_unique<GhostModelHandler>(
+                ghosts.blinky,
                 generateModelMatrix(glm::vec3(-4.0f, ghostsHeight, 0.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/BlinkyTex.png"
             );
 
-            ModelHandler pinkyHandler = ModelHandler(
+            auto pinkyHandler = std::make_unique<GhostModelHandler>(
+                ghosts.pinky,
                 generateModelMatrix(glm::vec3(-1.0f, ghostsHeight, 2.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/PinkyTex.png"
             );
 
-            ModelHandler inkyHandler = ModelHandler(
+            auto inkyHandler = std::make_unique<GhostModelHandler>(
+                ghosts.inky,
                 generateModelMatrix(glm::vec3(-1.0f, ghostsHeight, 0.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/InkyTex.png"
             );
 
-            ModelHandler clydeHandler = ModelHandler(
+            auto clydeHandler = std::make_unique<GhostModelHandler>(
+                ghosts.clyde,
                 generateModelMatrix(glm::vec3(-1.0f, ghostsHeight, -2.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/ClydeTex.png"
             );
 
 
-            modelHandlers.push_back(labirinthHandler);
-            modelHandlers.push_back(floorHandler);
-            modelHandlers.push_back(skyHandler);
+            modelHandlers.push_back(std::move(labirinthHandler));
+            modelHandlers.push_back(std::move(floorHandler));
+            modelHandlers.push_back(std::move(skyHandler));
 
-            modelHandlers.push_back(blinkyHandler);
-            modelHandlers.push_back(pinkyHandler);
-            modelHandlers.push_back(inkyHandler);
-            modelHandlers.push_back(clydeHandler);
+            modelHandlers.push_back(std::move(blinkyHandler));
+            modelHandlers.push_back(std::move(pinkyHandler));
+            modelHandlers.push_back(std::move(inkyHandler));
+            modelHandlers.push_back(std::move(clydeHandler));
         }
 
         // Generate model matrix with translation rotation and scale using yaw pitch and roll for rotation and single float per uniform scaling;
@@ -461,7 +437,9 @@ class Pacman3D {
 
 
             // For each model, cleanup their variables;
-            for (ModelHandler& handler : modelHandlers) {
+            for (const auto& handlerPtr : modelHandlers) {
+
+                ModelHandler& handler = *handlerPtr;
 
                 vkDestroySampler(device, handler.textureSampler, nullptr);
                 vkDestroyImageView(device, handler.textureImageView, nullptr);
@@ -1225,7 +1203,10 @@ class Pacman3D {
             vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE); // Being render pass: VK_SUBPASS_CONTENTS_INLINE used to use only first level framebuffers;
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline); // Bind graphics pipeline;
 
-            for (ModelHandler& handler : modelHandlers) {
+            for (const auto& handlerPtr : modelHandlers) {
+
+                ModelHandler& handler = *handlerPtr;
+
                 VkBuffer vertexBuffers[] = { handler.vertexBuffer };
                 VkDeviceSize offsets[] = { 0 };
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
@@ -1277,7 +1258,7 @@ class Pacman3D {
             if (result == VK_ERROR_OUT_OF_DATE_KHR) { recreateSwapChain(); return; }
             else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) { throw std::runtime_error("failed to acquire swap chain image!"); }
 
-            for (ModelHandler& handler : modelHandlers) { updateUniformBuffer(handler, currentFrame); } // Update uniform buffer;
+            for (const auto& handler : modelHandlers) { updateUniformBuffer(*handler, currentFrame); } // Update uniform buffer;
 
             // Only reset the fence if we are submitting work
             vkResetFences(device, 1, &inFlightFences[currentFrame]);
@@ -1527,7 +1508,7 @@ class Pacman3D {
 
             UniformBufferObject ubo { };
 
-            ubo.model = handler.modelMatrix;
+            ubo.model = handler.getModelMatrix();
 
             ubo.view = viewCamera.getViewMatrix();
 

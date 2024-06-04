@@ -30,9 +30,9 @@ struct ShortestPath {
     std::vector<Point> path;
     std::vector<glm::ivec2 > directions;
 
-    // To ease a little the computation if player is still;
-    glm::vec3 pacmanPosition;
-    glm::ivec2 pacmanDirection;
+    //// To ease a little the computation if player is still;
+    //glm::vec3 pacmanPosition;
+    //glm::ivec2 pacmanDirection;
 };
 
 
@@ -74,125 +74,46 @@ class Ghost {
     public:
 
         // Constructor;
-        Ghost(std::string ghostName, glm::vec3 startColor, glm::vec3 startPosition, float startSpeed, float startSizeModifier)
-            : movingDirection(glm::ivec2(1, 0)), speedModifier(1.0f), modeDuration(12.0f), frightenedColor(glm::vec3(0.2f, 0.2f, 0.2f)) {
-
-            name = ghostName;
-            color = startColor;
-
-            currentSpeed = startSpeed;
-            startSizeModifier = sizeModifier;
-
-            startingPosition = startPosition;
-            currentPosition = startPosition;
-
-            currentPositionInMap = convertToDiscreteCoordinates(currentPosition);
-
-            state = NORMAL;
-        }
+        Ghost(std::string ghostName, glm::vec3 startColor, glm::vec3 startPosition, float startSpeed, float startSize) { }
 
         // setTargetPosition is a virtual function that differs with the behaviour of different ghosts so it is overridden in the sublasses;
-        virtual void setTargetPosition(glm::vec3 pacmanPosition, glm::ivec2 pacmanDirection) = 0;
+        virtual void setTargetPosition(glm::vec3 pacmanPosition, glm::ivec2 pacmanDirection) { };
 
         // Compute all needed to move the model of the ghost in the right direction for reaching pacman with its behaviour specifics;
-        void move(float deltaTime, glm::vec3 pacmanPosition, glm::vec3 pacmanDirection = glm::vec3(1.0f, 0.0f, 0.0f)) {
+        void move(float deltaTime, glm::vec3 pacmanPosition, glm::vec3 pacmanDirection = glm::vec3(0.0f)) {
 
-            glm::ivec2 newDirection = movingDirection;
-            pacmanPosition.y = 0.0f;
-           
-            setTargetPosition(pacmanPosition, getPacmanIntDirection(pacmanDirection)); // Set the target position based on the ghost's behavior;
-            // printf("%s: going to (%f, %f)\n", name.c_str(), targetPosition.x, targetPosition.z);
+            // Compute the shortest path from the current position to the pacman position;
+            // ShortestPath shortestPath = shortestPathLeeAlgorithm(maze, { currentPositionInMap.x, currentPositionInMap.y }, { static_cast<int>(pacmanPosition.x), static_cast<int>(pacmanPosition.z) });
 
-            // Convert to discrete coordinates;
-            currentPositionInMap = convertToDiscreteCoordinates(currentPosition);
-            targetPositionInMap = convertToDiscreteCoordinates(targetPosition);
+            
 
-            // Change direction (if needed) only if the ghost is (more or less) in the center of the cell it's on, to not make them going against the walls;
-            if (isOkToChangeDirection()) {
-                // Compute the shortest path to the target position;
-                ShortestPath shortestPath = shortestPathLeeAlgorithm(maze, Point(currentPositionInMap.x, currentPositionInMap.y), Point(targetPositionInMap.x, targetPositionInMap.y));
 
-                distanceFromPacman = shortestPath.distance;
-                newDirection = shortestPath.directions[0];
-            }
-
-            if (state == FRIGHTENED) {  } // TODO: go in opposite direction if possible, otherwise IDK :C;
-
-            updateModelMatrix(deltaTime, newDirection); // Update model matrix to move towards the target position;
-            movingDirection = newDirection; // Update movingDirection for next iteration;
         }
 
-        // Get the player direction as one of these: {0, 1}, {1, 0}, {0, -1}, {-1, 0} to simplify computation;
-        glm::ivec2 getPacmanIntDirection(glm::vec3 pacmanDirection) {
-            glm::vec3 absDir = glm::abs(pacmanDirection);
-            glm::vec3 primaryDir = glm::vec3(0.0f);
-            glm::ivec2 direction;
+        
 
-            if (absDir.x >= absDir.z) { primaryDir.x = glm::sign(pacmanDirection.x); }
-            else { primaryDir.z = glm::sign(pacmanDirection.z); }
 
-            direction.x = static_cast<int>(primaryDir.x);
-            direction.y = static_cast<int>(primaryDir.z);
 
-            return direction;
-        }
 
-        // Convert currentPosition or targetPosition into discrete coordinates. Cannot be done now since I have no idea how the maze will be positioned in the world coordinates;
-        glm::ivec2 convertToDiscreteCoordinates(glm::vec3 continuousCoordinates) {
 
-            int col = static_cast<int>(continuousCoordinates.x + 0.5f); // Not sure it is completely correct to round up like this; TODO: check;
-            int row = static_cast<int>(continuousCoordinates.z + 0.5f); // Not sure it is completely correct to round up like this;
 
-            // Clamp row and col to ensure they are within the maze boundaries;
-            row = glm::clamp(row, 0, 30);
-            col = glm::clamp(col, 0, 26);
 
-            // std::cout << row << ", " << col << ";\n";
-            return glm::ivec2(col, row);
-        }
-
-        // Get the difference between the currentPosition and the integer one wrt the map;
-        float difference(float currentPos, int currentPosMap) { return currentPos - currentPosMap; }
-
-        // Check the ghost is circa in the center of the cell it's in;
-        bool isOkToChangeDirection() {
-            float diffX = difference(currentPosition.x, currentPositionInMap.x);
-            float diffY = difference(currentPosition.z, currentPositionInMap.y);
-            return (diffX > 0.45f && diffX < 0.55f && diffY > 0.45f && diffY);
-        }
-
-        // Compute angle between 2 vectors;
-        float angleBetweenVectors(glm::vec2 v1, glm::vec2 v2) {
-            float dot = glm::dot(glm::normalize(v1), glm::normalize(v2));
-            dot = glm::clamp(dot, -1.0f, 1.0f);
-
-            float angle = std::acos(dot);
-            float cross = glm::cross(glm::vec3(v1, 0), glm::vec3(v2, 0)).z;
-
-            return cross >= 0 ? angle : -angle;
-        }
 
         // Update model matrix;
-        void updateModelMatrix(float deltaTime, glm::ivec2 newDirection) {
-            float angle = angleBetweenVectors(glm::normalize(glm::vec2(movingDirection)), glm::normalize(glm::vec2(newDirection)));
-
-            modelMatrix =
-                glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f)) * // Only needs to rotate the "pitch" for the ghost;
-                glm::translate(glm::mat4(1.0f), glm::vec3(currentSpeed * speedModifier * deltaTime, 0.0f, 0.0f)); // If the ghost is moving but not watching in front of itself this line can solve the problem. TODO: check;
+        void updateModelMatrix() {
         }
 
         // Determine equivalence among floats;
-        bool floatEquivalent(float a, float b, float epsilon = 1e-3f) {
-            float diff = std::fabs(a - b);
-            if (diff <= epsilon) { return true; }
-            return diff <= epsilon * std::fmax(std::fabs(a), std::fabs(b));
-        }
+        bool floatEquivalence(double a, double b, double tolerance = 1e-4) { return std::abs(a - b) <= tolerance; }
 
 
         // Setters and getters:
 
         // Set the maze;
         void setMaze(std::vector<std::vector<int>> maze) { this->maze = maze; }
+
+        // Set the model matrix;
+        void setModelMatrix(glm::mat4 modelMat) { this->modelMatrix = modelMat; }
         
         // Return the model matrix;
         glm::mat4 getModelMatrix() { return modelMatrix; }
@@ -267,6 +188,7 @@ class ChaserGhost : public Ghost {
         ChaserGhost(std::string ghostName, glm::vec3 startColor, glm::vec3 startPosition, float startSpeed, float startSize) : Ghost(ghostName, startColor, startPosition, startSpeed, startSize) { }
 
         void setTargetPosition(glm::vec3 pacmanPosition, glm::ivec2 pacmanDirection) override { targetPosition = pacmanPosition; }
+
 };
 
 class AmbusherGhost : public Ghost {
@@ -290,7 +212,7 @@ class AmbusherGhost : public Ghost {
                 maze[target.x][target.z] != WALL && maze[target.x][target.z] != GHOSTS_HUB) { targetPosition = target; }
 
             // Repeat if no cells found until we come back again on the pacman current position;
-            while (!floatEquivalent(target.x, pacmanPosition.x) || !floatEquivalent(target.z, pacmanPosition.z)) {
+            while (!floatEquivalence(target.x, pacmanPosition.x) || !floatEquivalence(target.z, pacmanPosition.z)) {
 
                 Point perpendicularDirection = { pacmanDirection.y, pacmanDirection.x }; // Direction perpendicular to the one in which pacman is moving;
                 // Check the 2 positions adjacent in the perpendicular direction;s
@@ -308,6 +230,7 @@ class AmbusherGhost : public Ghost {
             // Set pacmanPosition if no suitable cell is found before;
             targetPosition = pacmanPosition; return;
         }
+
 };
 
 class ProtectorGhost : public Ghost {
@@ -320,6 +243,34 @@ class ProtectorGhost : public Ghost {
             if (distanceFromPacman > 8) { targetPosition = {29.0f, 0.0f, 2.0f}; } // Only working with original pacman maze!!! TODO ;
             else { targetPosition = pacmanPosition; }
         }
+
+};
+
+class GhostCollection {
+
+    public:
+
+        std::shared_ptr<ChaserGhost> blinky;
+        std::shared_ptr<AmbusherGhost> pinky;
+        std::shared_ptr<AmbusherGhost> inky;
+        std::shared_ptr<ProtectorGhost> clyde;
+
+        GhostCollection(std::vector<std::vector<int>> maze) :
+            blinky(std::make_shared<ChaserGhost>("Blinky", glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(-4.0f, ghostsHeight, 0.0f), 1.0f, 1.0f)),
+            pinky(std::make_shared<AmbusherGhost>("Pinky", glm::vec3(1.0f, 0.7f, 0.9f), glm::vec3(-1.0f, ghostsHeight, 2.0f), 1.0f, 1.0f, 4)),
+            inky(std::make_shared<AmbusherGhost>("Inky", glm::vec3(0.5f, 0.96f, 1.0f), glm::vec3(-1.0f, ghostsHeight, 0.0f), 1.0f, 1.0f, 2)),
+            clyde(std::make_shared<ProtectorGhost>("Clyde", glm::vec3(0.91f, 0.7f, 0.0f), glm::vec3(-1.0f, ghostsHeight, -2.0f), 1.0f, 1.0f)) {
+            setMazeInGhosts(maze);
+        }
+
+        void moveAllGhosts(float deltaTime, glm::vec3 playerPosition, glm::vec3 playerDirection) {
+            blinky->move(deltaTime, playerPosition);
+            pinky->move(deltaTime, playerPosition, playerDirection);
+            inky->move(deltaTime, playerPosition, playerDirection);
+            clyde->move(deltaTime, playerPosition);
+        }
+
+        void setMazeInGhosts(std::vector<std::vector<int>> maze) { blinky->setMaze(maze); pinky->setMaze(maze); inky->setMaze(maze); clyde->setMaze(maze); }
 };
 
 #endif

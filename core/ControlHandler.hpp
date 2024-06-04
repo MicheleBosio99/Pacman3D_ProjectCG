@@ -55,7 +55,7 @@ class ViewCameraControl {
             float velocity = movementSpeed * deltaTime;
 
             // Use this new movement so speed is not affected by watching direction;
-            glm::vec3 movement = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
+            glm::vec3 movement = glm::normalize(glm::vec3(front.x, 0.0f, front.z)); // These are between 0 and 1;
 
             if (direction == FORWARD) { position += movement * velocity; }
             if (direction == BACKWARD) { position -= movement * velocity; }

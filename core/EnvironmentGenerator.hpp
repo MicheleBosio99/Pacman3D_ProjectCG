@@ -248,11 +248,12 @@ class FloorGenerator {
 
         float floorSide;
         int numOfSegments;
+        int textureRepeatCount;
         
         std::vector<Vertex> floorVertices;
         std::vector<uint32_t> floorIndices;
 
-        FloorGenerator(float sideLength = 50.0f, int segments = 50) : floorSide(sideLength), numOfSegments(segments) { generateFloorMesh(); }
+        FloorGenerator(float sideLength = 50.0f, int segments = 50, int textureRepeatCount = 50) : floorSide(sideLength), numOfSegments(segments), textureRepeatCount(textureRepeatCount) { generateFloorMesh(); }
 
         std::vector<Vertex> getFloorVertices() { return floorVertices; }
         std::vector<uint32_t> getFloorIndices() { return floorIndices; }
@@ -268,15 +269,15 @@ class FloorGenerator {
             float segmentSize = floorSide / numOfSegments;
 
             // Fill vertices vector;
-            for (int z = 0; z <= numOfSegments; z ++) {
-                for (int x = 0; x <= numOfSegments; x ++) {
+            for (int z = 0; z <= numOfSegments; z++) {
+                for (int x = 0; x <= numOfSegments; x++) {
 
                     float xPos = -halfLength + x * segmentSize;
                     float zPos = -halfLength + z * segmentSize;
 
-                    // Calculate texture coordinates;
-                    float u = static_cast<float>(x) / numOfSegments;
-                    float v = static_cast<float>(z) / numOfSegments;
+                    // Modified texture coordinates for repetition;
+                    float u = static_cast<float>(x) / numOfSegments * textureRepeatCount;
+                    float v = static_cast<float>(z) / numOfSegments * textureRepeatCount;
 
                     floorVertices.push_back(Vertex{ {xPos, 0.0f, zPos}, color, {u, v} });
                 }
@@ -301,6 +302,7 @@ class FloorGenerator {
                 }
             }
         }
+
 };
 
 

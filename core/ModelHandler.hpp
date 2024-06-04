@@ -1,13 +1,22 @@
 
+#ifndef MODEL_HANDLER_HPP
+#define MODEL_HANDLER_HPP
+
+
 
 class ModelHandler {
 
     public:
 
-        ModelHandler(glm::mat4 model, std::string modelPath = "", std::string texturePath = "") : modelMatrix(model), modelPath(modelPath), texturePath(texturePath) { }
+        ModelHandler(glm::mat4 modelMatrix, std::string modelPath, std::string texturePath) : modelMatrix(modelMatrix), modelPath(modelPath), texturePath(texturePath) { }
 
-        std::string modelPath;
-        std::string texturePath;
+        ModelHandler(glm::mat4 modelMatrix, std::string texturePath) : modelMatrix(modelMatrix), texturePath(texturePath) { }
+
+        ModelHandler(glm::mat4 modelMatrix) : modelMatrix(modelMatrix) { }
+
+
+        std::string modelPath = "";
+        std::string texturePath = "";
 
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
@@ -29,8 +38,34 @@ class ModelHandler {
 
         glm::mat4 modelMatrix;
 
-        void generateModel(std::string modelPath) { }
-
-        void generateTexture(std::string texturePath) { }
+        virtual glm::mat4 getModelMatrix() { return glm::mat4(1.0f); };
 
 };
+
+class EnvironmentModelHandler : public ModelHandler {
+
+	public:
+
+		EnvironmentModelHandler(glm::mat4 modelMatrix, std::string texturePath) : ModelHandler(modelMatrix, texturePath) { }
+
+        glm::mat4 getModelMatrix() override { return modelMatrix; }
+		
+};
+
+class GhostModelHandler : public ModelHandler {
+
+    std::shared_ptr<Ghost> ghost;
+
+	public:
+
+		GhostModelHandler(std::shared_ptr<Ghost> ghost, glm::mat4 modelMatrix, std::string modelPath, std::string texturePath) : ghost(ghost), ModelHandler(modelMatrix, modelPath, texturePath) {
+            ghost->setModelMatrix(modelMatrix);
+        }
+
+        glm::mat4 getModelMatrix() override { return ghost->getModelMatrix(); }
+
+};
+
+
+
+#endif
