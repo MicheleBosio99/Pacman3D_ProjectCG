@@ -370,7 +370,7 @@ class Pacman3D {
             );
 
 
-            // modelHandlers.push_back(std::move(labirinthHandler));
+            modelHandlers.push_back(std::move(labirinthHandler));
             modelHandlers.push_back(std::move(floorHandler));
             modelHandlers.push_back(std::move(skyHandler));
 
@@ -396,23 +396,24 @@ class Pacman3D {
 			return model;
 		}
 
-
-        // Add normal pelets to the scene;
+        // Add pellets to the scene;
         void addPelletsModelsToScene() {
-            for(int i = 0; i < envGenerator.mazeGenerator.getMaze().size(); i++) {
-				for(int j = 0; j < envGenerator.mazeGenerator.getMaze()[i].size(); j++) {
-					if(envGenerator.mazeGenerator.getMaze()[i][j] == PELLET) {
-                        glm::vec3 pelletPosition = glm::vec3(i, 0.0f, j);
+            glm::vec3 centeredOffset = glm::vec3(envGenerator.mazeGenerator.getMaze().size() / 2.0f - 0.5f, 0.0f, envGenerator.mazeGenerator.getMaze()[0].size() / 2.0f - 0.5f);
+            
+            for (int i = 0; i < envGenerator.mazeGenerator.getMaze().size(); i++) {
+                for (int j = 0; j < envGenerator.mazeGenerator.getMaze()[i].size(); j++) {
+                    if (envGenerator.mazeGenerator.getMaze()[i][j] == PELLET) {
+                        glm::vec3 pelletPosition = glm::vec3(i, 0.6f, j) - centeredOffset;
                         PelletGenerator pelletGenerator = PelletGenerator(pelletPosition);
 
-						auto pelletHandler = std::make_unique<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/NormalPellet.png", i, j);
+                        auto pelletHandler = std::make_unique<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/NormalPellet.png", i, j);
                         pelletHandler->vertices = pelletGenerator.getPelletVertices();
                         pelletHandler->indices = pelletGenerator.getPelletIndices();
 
-						modelHandlers.push_back(std::move(pelletHandler));
-					}
+                        modelHandlers.push_back(std::move(pelletHandler));
+                    }
                     else if (envGenerator.mazeGenerator.getMaze()[i][j] == POWER_PELLET) {
-                        glm::vec3 pelletPosition = glm::vec3(i, 0.0f, j);
+                        glm::vec3 pelletPosition = glm::vec3(i, 0.6f, j) - centeredOffset;
                         PelletGenerator pelletGenerator = PelletGenerator(pelletPosition, true, 0.4f, 50.0f);
 
                         auto pelletHandler = std::make_unique<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/PowerPellet.png", i, j);
@@ -421,8 +422,8 @@ class Pacman3D {
 
                         modelHandlers.push_back(std::move(pelletHandler));
                     }
-				}
-			}
+                }
+            }
         }
 
 

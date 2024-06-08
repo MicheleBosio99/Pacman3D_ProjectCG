@@ -311,7 +311,6 @@ class FloorGenerator {
 class PelletGenerator {
 
     public:
-
         bool isPowerPellet;
         glm::vec3 position;
         float pelletDiameter;
@@ -322,13 +321,12 @@ class PelletGenerator {
         std::vector<uint32_t> pelletIndices;
 
         PelletGenerator(glm::vec3 position, bool isPowerPellet = false, float pelletDiameter = 0.2f, float points = 25.0f)
-            : position(position), isPowerPellet(isPowerPellet), pelletDiameter(pelletDiameter), eaten(false), points() { generatePelletMesh(); }
+            : position(position), isPowerPellet(isPowerPellet), pelletDiameter(pelletDiameter), eaten(false), points(points) { generatePelletMesh(); }
 
         std::vector<Vertex> getPelletVertices() { return pelletVertices; }
         std::vector<uint32_t> getPelletIndices() { return pelletIndices; }
 
     private:
-
         void generatePelletMesh() {
             pelletVertices.clear();
             pelletIndices.clear();
@@ -357,7 +355,7 @@ class PelletGenerator {
                     float u = static_cast<float>(lon) / numLonSegments;
                     float v = static_cast<float>(lat) / numLatSegments;
 
-                    pelletVertices.push_back(Vertex{ {x + position.x, y + position.y, z + position.z}, color, {u, v} });
+                    pelletVertices.push_back(Vertex{ { x, y, z }, color, { u, v } });
                 }
             }
 
