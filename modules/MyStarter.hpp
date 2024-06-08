@@ -369,15 +369,17 @@ class Pacman3D {
                 "textures/ghosts/ClydeTex.png"
             );
 
-            modelHandlers.push_back(std::move(labirinthHandler));
+
+            // modelHandlers.push_back(std::move(labirinthHandler));
             modelHandlers.push_back(std::move(floorHandler));
             modelHandlers.push_back(std::move(skyHandler));
-
 
             modelHandlers.push_back(std::move(blinkyHandler));
             modelHandlers.push_back(std::move(pinkyHandler));
             modelHandlers.push_back(std::move(inkyHandler));
             modelHandlers.push_back(std::move(clydeHandler));
+
+            addPelletsModelsToScene();
         }
 
         // Generate model matrix with translation rotation and scale using yaw pitch and roll for rotation and single float per uniform scaling;
@@ -393,7 +395,36 @@ class Pacman3D {
 
 			return model;
 		}
-       
+
+
+        // Add normal pelets to the scene;
+        void addPelletsModelsToScene() {
+            for(int i = 0; i < envGenerator.mazeGenerator.getMaze().size(); i++) {
+				for(int j = 0; j < envGenerator.mazeGenerator.getMaze()[i].size(); j++) {
+					if(envGenerator.mazeGenerator.getMaze()[i][j] == PELLET) {
+                        glm::vec3 pelletPosition = glm::vec3(i, 0.0f, j);
+                        PelletGenerator pelletGenerator = PelletGenerator(pelletPosition);
+
+						auto pelletHandler = std::make_unique<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/NormalPellet.png", i, j);
+                        pelletHandler->vertices = pelletGenerator.getPelletVertices();
+                        pelletHandler->indices = pelletGenerator.getPelletIndices();
+
+						modelHandlers.push_back(std::move(pelletHandler));
+					}
+                    else if (envGenerator.mazeGenerator.getMaze()[i][j] == POWER_PELLET) {
+                        glm::vec3 pelletPosition = glm::vec3(i, 0.0f, j);
+                        PelletGenerator pelletGenerator = PelletGenerator(pelletPosition, true, 0.4f, 50.0f);
+
+                        auto pelletHandler = std::make_unique<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/PowerPellet.png", i, j);
+                        pelletHandler->vertices = pelletGenerator.getPelletVertices();
+                        pelletHandler->indices = pelletGenerator.getPelletIndices();
+
+                        modelHandlers.push_back(std::move(pelletHandler));
+                    }
+				}
+			}
+        }
+
 
 
 

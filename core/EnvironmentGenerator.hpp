@@ -17,6 +17,7 @@
 struct Vertex;
 
 const glm::vec3 color = glm::vec3(1.0f); // Color is generic for every mesh since there will be then a texture applied on;
+const float PI = 3.14159265359f;
 
 
 // Defines an enum for the content of the maze;
@@ -30,7 +31,6 @@ enum CellContent {
     TELEPORT_VERTICAL, // Cell on the map limit that teleports pacman to the other side of the maze vertically;
     PATH // Cell is a path;
 };
-
 
 
 
@@ -173,8 +173,6 @@ class SkyGenerator {
 
     public:
 
-        const float PI = 3.14159265359f;
-
         float skyRadius;
         float maxHeight;
         int numLatSegments;
@@ -306,6 +304,79 @@ class FloorGenerator {
             }
         }
 
+};
+
+
+// Normal pellet generator class for pellets;
+class PelletGenerator {
+
+    public:
+
+        bool isPowerPellet;
+        glm::vec3 position;
+        float pelletDiameter;
+        bool eaten;
+        float points;
+
+        std::vector<Vertex> pelletVertices;
+        std::vector<uint32_t> pelletIndices;
+
+        PelletGenerator(glm::vec3 position, bool isPowerPellet = false, float pelletDiameter = 0.2f, float points = 25.0f)
+            : position(position), isPowerPellet(isPowerPellet), pelletDiameter(pelletDiameter), eaten(false), points() { generatePelletMesh(); }
+
+        std::vector<Vertex> getPelletVertices() { return pelletVertices; }
+        std::vector<uint32_t> getPelletIndices() { return pelletIndices; }
+
+    private:
+
+        void generatePelletMesh() {
+            pelletVertices.clear();
+            pelletIndices.clear();
+
+            int numLatSegments = 12;
+            int numLonSegments = 18;
+            float radius = pelletDiameter / 2.0f;
+
+            // Fill vertices vector;
+            for (int lat = 0; lat <= numLatSegments; ++lat) {
+                float theta = PI * (static_cast<float>(lat) / numLatSegments);
+                float sinTheta = sinf(theta);
+                float cosTheta = cosf(theta);
+
+                for (int lon = 0; lon <= numLonSegments; ++lon) {
+                    float phi = 2.0f * PI * (static_cast<float>(lon) / numLonSegments);
+                    float sinPhi = sinf(phi);
+                    float cosPhi = cosf(phi);
+
+                    // Compute position coordinates;
+                    float x = radius * cosPhi * sinTheta;
+                    float y = radius * cosTheta;
+                    float z = radius * sinPhi * sinTheta;
+
+                    // Compute texture coordinates;
+                    float u = static_cast<float>(lon) / numLonSegments;
+                    float v = static_cast<float>(lat) / numLatSegments;
+
+                    pelletVertices.push_back(Vertex{ {x + position.x, y + position.y, z + position.z}, color, {u, v} });
+                }
+            }
+
+            // Fill indices vector;
+            for (int lat = 0; lat < numLatSegments; ++lat) {
+                for (int lon = 0; lon < numLonSegments; ++lon) {
+                    int first = (lat * (numLonSegments + 1)) + lon;
+                    int second = first + numLonSegments + 1;
+
+                    pelletIndices.push_back(first);
+                    pelletIndices.push_back(second);
+                    pelletIndices.push_back(first + 1);
+
+                    pelletIndices.push_back(second);
+                    pelletIndices.push_back(second + 1);
+                    pelletIndices.push_back(first + 1);
+                }
+            }
+        }
 };
 
 
