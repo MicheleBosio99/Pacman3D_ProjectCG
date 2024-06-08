@@ -37,12 +37,8 @@
 const uint32_t WIDTH = 1600;
 const uint32_t HEIGHT = 1080;
 
-const float pacmanHeight = .6f;
-const float ghostsHeight = 0.6f;
-const float ghostsScale = 0.275f;
+const float pacmanHeight = 8.6f;
 
-const std::string MODEL_PATH = "models/viking_room.obj";
-const std::string TEXTURE_PATH = "textures/viking_room.png";
 const std::string BASE_TEXTURE_PATH = "textures/test/BlackBrickedWall.png";
 
 const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
@@ -143,9 +139,9 @@ static std::vector<char> readFile(const std::string& filename) {
 #include "../core/GhostsBehaviour.hpp"
 #include "../core/ModelHandler.hpp"
 
-glm::vec3 PacmanStartingPosition(8.0f, pacmanHeight, 0.0f); // Set default Pacman starting position in world;
+glm::vec3 PacmanStartingPosition(5.0f, pacmanHeight, 5.0f); // Set default Pacman starting position in world;
 
-ViewCameraControl viewCamera = ViewCameraControl(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, 0.0f, 5.0f); // Controller that handles view camera. Gets position, up, yaw, pitch;
+ViewCameraControl viewCamera = ViewCameraControl(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, -55.0f, 5.0f); // Controller that handles view camera. Gets position, up, yaw, pitch and speed;
 
 float deltaTime = 0.0f; // Time between current frame and last frame;
 float lastFrame = 0.0f; // Time of last frame;
@@ -345,40 +341,38 @@ class Pacman3D {
             skyHandler->vertices = envGenerator.skyGenerator.geSkyVertices();
             skyHandler->indices = envGenerator.skyGenerator.getSkyIndices();
 
-
-
             auto blinkyHandler = std::make_unique<GhostModelHandler>(
                 ghosts.blinky,
-                generateModelMatrix(glm::vec3(-4.0f, ghostsHeight, 0.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
+                generateModelMatrix(ghosts.blinky->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/BlinkyTex.png"
             );
 
             auto pinkyHandler = std::make_unique<GhostModelHandler>(
                 ghosts.pinky,
-                generateModelMatrix(glm::vec3(-1.0f, ghostsHeight, 2.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
+                generateModelMatrix(ghosts.pinky->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/PinkyTex.png"
             );
 
             auto inkyHandler = std::make_unique<GhostModelHandler>(
                 ghosts.inky,
-                generateModelMatrix(glm::vec3(-1.0f, ghostsHeight, 0.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
+                generateModelMatrix(ghosts.inky->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/InkyTex.png"
             );
 
             auto clydeHandler = std::make_unique<GhostModelHandler>(
                 ghosts.clyde,
-                generateModelMatrix(glm::vec3(-1.0f, ghostsHeight, -2.0f), 0.0f, 0.0f, 0.0f, ghostsScale),
+                generateModelMatrix(ghosts.clyde->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/ClydeTex.png"
             );
 
-
             modelHandlers.push_back(std::move(labirinthHandler));
             modelHandlers.push_back(std::move(floorHandler));
             modelHandlers.push_back(std::move(skyHandler));
+
 
             modelHandlers.push_back(std::move(blinkyHandler));
             modelHandlers.push_back(std::move(pinkyHandler));
@@ -1601,7 +1595,7 @@ class Pacman3D {
 
         void createTextureImage(ModelHandler& handler) {
 
-            std::string texturePath = handler.texturePath != "" ? handler.texturePath : TEXTURE_PATH;
+            std::string texturePath = handler.texturePath != "" ? handler.texturePath : BASE_TEXTURE_PATH;
 
             int texWidth, texHeight, texChannels;
             stbi_uc* pixels = stbi_load(texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);

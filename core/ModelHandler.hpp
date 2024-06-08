@@ -3,7 +3,6 @@
 #define MODEL_HANDLER_HPP
 
 
-
 class ModelHandler {
 
     public:
@@ -42,6 +41,7 @@ class ModelHandler {
 
 };
 
+
 class EnvironmentModelHandler : public ModelHandler {
 
 	public:
@@ -52,6 +52,7 @@ class EnvironmentModelHandler : public ModelHandler {
 		
 };
 
+
 class GhostModelHandler : public ModelHandler {
 
     std::shared_ptr<Ghost> ghost;
@@ -59,13 +60,12 @@ class GhostModelHandler : public ModelHandler {
 	public:
 
 		GhostModelHandler(std::shared_ptr<Ghost> ghost, glm::mat4 modelMatrix, std::string modelPath, std::string texturePath) : ghost(ghost), ModelHandler(modelMatrix, modelPath, texturePath) {
-            ghost->setModelMatrix(modelMatrix);
+            ghost->setInitialModelMatrix(modelMatrix);
         }
 
         glm::mat4 getModelMatrix() override { return ghost->getModelMatrix(); }
 
 };
-
 
 
 #endif

@@ -14,6 +14,8 @@
 #include <glm/glm.hpp>
 #include <stdio.h>
 
+struct Vertex;
+
 const glm::vec3 color = glm::vec3(1.0f); // Color is generic for every mesh since there will be then a texture applied on;
 
 
@@ -25,7 +27,8 @@ enum CellContent {
     POWER_PELLET, // Contains a power pellet (the ones pacman eats to defeat ghosts);
     GHOSTS_HUB, // Cell is one of the ghosts hub, the ones the ghosts came out from;
     TELEPORT_HORIZONTAL, // Cell on the map limit that teleports pacman to the other side of the maze horizontally;
-    TELEPORT_VERTICAL // Cell on the map limit that teleports pacman to the other side of the maze vertically;
+    TELEPORT_VERTICAL, // Cell on the map limit that teleports pacman to the other side of the maze vertically;
+    PATH // Cell is a path;
 };
 
 
@@ -41,7 +44,7 @@ class MazeGenerator {
         std::vector<uint32_t> mazeIndices; // Indices connecting the vertices of the maze;
 
         // MazeGenerator constructor;
-        MazeGenerator(bool generateNewMaze = false, std::string filename = "resources/PacmanOriginalMaze.txt") {
+        MazeGenerator(bool generateNewMaze = false, std::string filename = "resources/PacmanModifiedMaze.txt") {
 
             if (!generateNewMaze) { loadMazeFromFile(filename); }
             else { generateRandomMaze(); }
