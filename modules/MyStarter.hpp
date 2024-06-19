@@ -15,6 +15,8 @@
 #include <string>
 #include <chrono>
 #include <unordered_map>
+#include <thread>
+#include <chrono>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -45,6 +47,13 @@ const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation
 
 const int MAX_FRAMES_IN_FLIGHT = 2; // How many frames should be processed concurrently;
 
+enum MATERIAL_TYPE {
+    ENVIRONMENT_MAT,
+    SKY_MAT,
+    PELLET_MAT,
+    GHOST_MAT,
+};
+
 // Queue families struct;
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -67,9 +76,11 @@ struct SwapChainSupportDetails {
 
 // Vertex shader change from hardcoded to vertices passed as parameters;
 struct Vertex {
+
     glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
+    int materialID;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
@@ -80,8 +91,8 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
 
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
@@ -98,16 +109,21 @@ struct Vertex {
         attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
 
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32_SINT;
+        attributeDescriptions[3].offset = offsetof(Vertex, materialID);
+
         return attributeDescriptions;
     }
 
-    bool operator==(const Vertex& other) const { return pos == other.pos && color == other.color && texCoord == other.texCoord; }
+    bool operator==(const Vertex& other) const { return pos == other.pos && color == other.color && texCoord == other.texCoord && materialID == other.materialID; }
 };
 
 namespace std {
     template<> struct hash<Vertex> {
         size_t operator()(Vertex const& vertex) const {
-            return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
+            return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1) ^ (hash<int>()(vertex.materialID) << 3);
         }
     };
 }
@@ -139,7 +155,7 @@ static std::vector<char> readFile(const std::string& filename) {
 #include "../core/GhostsBehaviour.hpp"
 #include "../core/ModelHandler.hpp"
 
-glm::vec3 PacmanStartingPosition(5.0f, pacmanHeight, 5.0f); // Set default Pacman starting position in world;
+glm::vec3 PacmanStartingPosition(8.5f, pacmanHeight, 0.0f); // Set default Pacman starting position in world;
 
 ViewCameraControl viewCamera = ViewCameraControl(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, -55.0f, 5.0f); // Controller that handles view camera. Gets position, up, yaw, pitch and speed;
 
@@ -213,6 +229,7 @@ class Pacman3D {
             otherInitializations();
             loadModelHandlers();
             initVulkan();
+            startGameCoroutines();
             mainLoop();
             cleanup();
         }
@@ -259,9 +276,17 @@ class Pacman3D {
         VkImageView colorImageView;
 
         // Contains ModelHandlers to handle all model needed to be loaded;
-        std::vector<std::unique_ptr<ModelHandler>> modelHandlers;
+        std::vector<std::shared_ptr<ModelHandler>> modelHandlers;
         EnvironmentGenerator envGenerator; // Environment generator;
         GhostCollection ghosts = GhostCollection(envGenerator.mazeGenerator.getMaze()); // Enemy ghosts holder;
+
+        std::vector<std::vector<std::tuple<std::shared_ptr<ModelHandler>, bool>>> pelletsInMaze; // Hold pellets in maze and their status;
+
+        float playerScore = 0.0f; // Player score;
+        int howManyPelletsLeft = 0; // How many pellets are left in the maze;
+
+
+        bool isGameOver = false; // Is the game over?;
 
 
         void initWindow() {
@@ -329,40 +354,54 @@ class Pacman3D {
         // Create the model handlers for needed models. Temporary, will be done with a JSON later;
         void loadModelHandlers() {
 
-            auto labirinthHandler = std::make_unique<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/BlackBrickedWall.png");
+            auto labirinthHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/BlackBrickedWall.png");
             labirinthHandler->vertices = envGenerator.mazeGenerator.getMazeVertices();
             labirinthHandler->indices = envGenerator.mazeGenerator.getMazeIndices();
 
-            auto floorHandler = std::make_unique<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/MushyFloor.png");
+            auto floorHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/MushyFloor.png");
             floorHandler->vertices = envGenerator.floorGenerator.getFloorVertices();
             floorHandler->indices = envGenerator.floorGenerator.getFloorIndices();
 
-            auto skyHandler = std::make_unique<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/Sky.png");
+            auto skyHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/Sky.png");
             skyHandler->vertices = envGenerator.skyGenerator.geSkyVertices();
             skyHandler->indices = envGenerator.skyGenerator.getSkyIndices();
 
-            auto blinkyHandler = std::make_unique<GhostModelHandler>(
+            auto leftPortalHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, -14.0f)), "textures/test/Portal.png");
+            leftPortalHandler->vertices = envGenerator.teleporterGenerator.getTeleporterVertices();
+            leftPortalHandler->indices = envGenerator.teleporterGenerator.getTeleporterIndices();
+
+            auto rightPortalHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 14.0f)), "textures/test/Portal.png");
+            rightPortalHandler->vertices = envGenerator.teleporterGenerator.getTeleporterVertices();
+            rightPortalHandler->indices = envGenerator.teleporterGenerator.getTeleporterIndices();
+
+            auto gateHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 0.0f, 0.0f)), "textures/test/Gate.png");
+            gateHandler->vertices = envGenerator.gateGenerator.getGateVertices();
+            gateHandler->indices = envGenerator.gateGenerator.getGateIndices();
+
+
+
+            auto blinkyHandler = std::make_shared<GhostModelHandler>(
                 ghosts.blinky,
                 generateModelMatrix(ghosts.blinky->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/BlinkyTex.png"
             );
 
-            auto pinkyHandler = std::make_unique<GhostModelHandler>(
+            auto pinkyHandler = std::make_shared<GhostModelHandler>(
                 ghosts.pinky,
                 generateModelMatrix(ghosts.pinky->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/PinkyTex.png"
             );
 
-            auto inkyHandler = std::make_unique<GhostModelHandler>(
+            auto inkyHandler = std::make_shared<GhostModelHandler>(
                 ghosts.inky,
                 generateModelMatrix(ghosts.inky->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/InkyTex.png"
             );
 
-            auto clydeHandler = std::make_unique<GhostModelHandler>(
+            auto clydeHandler = std::make_shared<GhostModelHandler>(
                 ghosts.clyde,
                 generateModelMatrix(ghosts.clyde->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
@@ -370,14 +409,17 @@ class Pacman3D {
             );
 
 
-            modelHandlers.push_back(std::move(labirinthHandler));
-            modelHandlers.push_back(std::move(floorHandler));
-            modelHandlers.push_back(std::move(skyHandler));
+            modelHandlers.push_back(labirinthHandler);
+            modelHandlers.push_back(floorHandler);
+            modelHandlers.push_back(skyHandler);
+            modelHandlers.push_back(leftPortalHandler);
+            modelHandlers.push_back(rightPortalHandler);
+            modelHandlers.push_back(gateHandler);
 
-            modelHandlers.push_back(std::move(blinkyHandler));
-            modelHandlers.push_back(std::move(pinkyHandler));
-            modelHandlers.push_back(std::move(inkyHandler));
-            modelHandlers.push_back(std::move(clydeHandler));
+            modelHandlers.push_back(blinkyHandler);
+            modelHandlers.push_back(pinkyHandler);
+            modelHandlers.push_back(inkyHandler);
+            modelHandlers.push_back(clydeHandler);
 
             addPelletsModelsToScene();
         }
@@ -398,52 +440,202 @@ class Pacman3D {
 
         // Add pellets to the scene;
         void addPelletsModelsToScene() {
-            glm::vec3 centeredOffset = glm::vec3(envGenerator.mazeGenerator.getMaze().size() / 2.0f - 0.5f, 0.0f, envGenerator.mazeGenerator.getMaze()[0].size() / 2.0f - 0.5f);
+            auto maze = envGenerator.mazeGenerator.getMaze();
+            glm::vec3 centeredOffset = glm::vec3(maze.size() / 2.0f - 0.5f, 0.0f, maze[0].size() / 2.0f - 0.5f);
+            pelletsInMaze.resize(maze.size());
             
-            for (int i = 0; i < envGenerator.mazeGenerator.getMaze().size(); i++) {
-                for (int j = 0; j < envGenerator.mazeGenerator.getMaze()[i].size(); j++) {
-                    if (envGenerator.mazeGenerator.getMaze()[i][j] == PELLET) {
-                        glm::vec3 pelletPosition = glm::vec3(i, 0.6f, j) - centeredOffset;
+            // pelletsInMaze.resize(maze.size());
+            for (int i = 0; i < maze.size(); i++) {
+
+                pelletsInMaze[i].resize(maze[0].size());
+                for (int j = 0; j < maze[i].size(); j++) {
+
+                    glm::vec3 pelletPosition = glm::vec3(i, 0.4f, j) - centeredOffset;
+                    if (maze[i][j] == PELLET) {
                         PelletGenerator pelletGenerator = PelletGenerator(pelletPosition);
 
-                        auto pelletHandler = std::make_unique<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/NormalPellet.png", i, j);
+                        auto pelletHandler = std::make_shared<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/NormalPellet.png", i, j);
                         pelletHandler->vertices = pelletGenerator.getPelletVertices();
                         pelletHandler->indices = pelletGenerator.getPelletIndices();
+                        pelletHandler->pointsWhenEaten = 10.0f;
 
-                        modelHandlers.push_back(std::move(pelletHandler));
+                        modelHandlers.push_back(pelletHandler);
+                        pelletsInMaze[i][j] = std::make_tuple(pelletHandler, false);
+                        howManyPelletsLeft ++;
                     }
-                    else if (envGenerator.mazeGenerator.getMaze()[i][j] == POWER_PELLET) {
-                        glm::vec3 pelletPosition = glm::vec3(i, 0.6f, j) - centeredOffset;
+                    else if (maze[i][j] == POWER_PELLET) {
                         PelletGenerator pelletGenerator = PelletGenerator(pelletPosition, true, 0.4f, 50.0f);
 
-                        auto pelletHandler = std::make_unique<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/PowerPellet.png", i, j);
+                        auto pelletHandler = std::make_shared<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/PowerPellet.png", i, j);
                         pelletHandler->vertices = pelletGenerator.getPelletVertices();
                         pelletHandler->indices = pelletGenerator.getPelletIndices();
+                        pelletHandler->pointsWhenEaten = 50.0f;
 
-                        modelHandlers.push_back(std::move(pelletHandler));
+                        modelHandlers.push_back(pelletHandler);
+                        pelletsInMaze[i][j] = std::make_tuple(pelletHandler, false);
                     }
                 }
             }
         }
 
+        // Check if player collided with walls; // Doesnt work completely, it fucks up sometimes; WHYYYYYYY;
+        void movePlayerAndCheckCollisions() {
+            auto maze = envGenerator.mazeGenerator.getMaze();
 
+            glm::vec3 currentPosition = viewCamera.position;
+            glm::vec3 frontDirection = viewCamera.front;
+            processInput(window); // Use the input received from keyboard this frame to update the view matrix;
+            glm::vec3 nextPosition = viewCamera.position;
+
+            glm::ivec2 playerPosInMaze = toGridCoordinates(nextPosition, maze.size(), maze[0].size());
+
+            if ((playerPosInMaze.x == 13 || playerPosInMaze.x == 14 || playerPosInMaze.x == 15) && playerPosInMaze.y == 28) { viewCamera.setPosition(glm::vec3(-0.5f, pacmanHeight, 13.5f)); }
+            else if ((playerPosInMaze.x == 13 || playerPosInMaze.x == 14 || playerPosInMaze.x == 15) && playerPosInMaze.y == -1) { viewCamera.setPosition(glm::vec3(-0.5f, pacmanHeight, -13.5f)); }
+            else if (playerPosInMaze.x < 0 || playerPosInMaze.x > maze.size() || playerPosInMaze.y < 0 || playerPosInMaze.y > maze[0].size()) { isGameOver = true; }
+            else if (maze[playerPosInMaze.x][playerPosInMaze.y] == WALL || maze[playerPosInMaze.x][playerPosInMaze.y] == GHOSTS_HUB) {
+
+                glm::vec3 movement = nextPosition - currentPosition;
+                glm::vec3 newPosition = currentPosition;
+
+                newPosition.x = nextPosition.x;
+                glm::ivec2 newPosInMaze = toGridCoordinates(newPosition, maze.size(), maze[0].size());
+                if (isValidPosition(newPosInMaze, maze)) { viewCamera.setPosition(newPosition); return; }
+
+                newPosition = currentPosition;
+                newPosition.z = nextPosition.z;
+                newPosInMaze = toGridCoordinates(newPosition, maze.size(), maze[0].size());
+                if (isValidPosition(newPosInMaze, maze)) { viewCamera.setPosition(newPosition); return; }
+
+                // If both horizontal and vertical failed, check diagonal (corner case);
+                newPosition = currentPosition;
+                glm::ivec2 cornerPosInMaze;
+                if (movement.x > 0 && movement.z > 0) { cornerPosInMaze = playerPosInMaze + glm::ivec2(1, 1); }
+                else if (movement.x > 0 && movement.z < 0) { cornerPosInMaze = playerPosInMaze + glm::ivec2(1, -1); }
+                else if (movement.x < 0 && movement.z > 0) { cornerPosInMaze = playerPosInMaze + glm::ivec2(-1, 1); }
+                else { cornerPosInMaze = playerPosInMaze + glm::ivec2(-1, -1); }
+
+                if (!isValidPosition(cornerPosInMaze, maze)) { viewCamera.setPosition(currentPosition); }
+            }
+        }
+
+        bool isValidPosition(glm::ivec2 pos, const std::vector<std::vector<int>>& maze) { return !outOfBounds(pos, maze) && maze[pos.x][pos.y] != WALL && maze[pos.x][pos.y] != GHOSTS_HUB; }
+
+        bool outOfBounds(glm::ivec2 pos, const std::vector<std::vector<int>>& maze) { return pos.x < 0 || pos.x >= maze.size() || pos.y < 0 || pos.y >= maze[0].size(); }
+
+        glm::ivec2 toGridCoordinates(const glm::vec3& worldPos, int height, int width) { return glm::ivec2(floor(worldPos.x) + height / 2, floor(- worldPos.z) + width / 2); }
+
+        // Check if player collided with pellets;
+        void checkForPlayerCollisionsWPellets() {
+
+            auto maze = envGenerator.mazeGenerator.getMaze();
+			glm::vec3 playerPosition = viewCamera.position;
+			glm::ivec2 playerPosInMaze = glm::ivec2(floor(playerPosition.x) + maze.size() / 2, floor(playerPosition.z) + maze[0].size() / 2);
+
+			if (maze[playerPosInMaze.x][playerPosInMaze.y] == PELLET) {
+				if (!std::get<1>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y])) {
+					std::get<1>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]) = true;
+
+                    auto it = std::find(modelHandlers.begin(), modelHandlers.end(), std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]));
+
+                    playerScore += std::dynamic_pointer_cast<PelletModelHandler>(std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]))->pointsWhenEaten;
+
+					modelHandlers.erase(it);
+
+                    howManyPelletsLeft --;
+				}
+			}
+            else if (maze[playerPosInMaze.x][playerPosInMaze.y] == POWER_PELLET) {
+                if (!std::get<1>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y])) {
+                    std::get<1>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]) = true;
+
+                    auto it = std::find(modelHandlers.begin(), modelHandlers.end(), std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]));
+
+                    playerScore += std::dynamic_pointer_cast<PelletModelHandler>(std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]))->pointsWhenEaten;
+                    powerPelletGotEaten();
+
+                    modelHandlers.erase(it);
+                }
+            }
+        }
+
+        // Change ghosts behaviour when power pellet gets eaten;
+        void powerPelletGotEaten() {
+            std::thread timerThread([this] {
+                ghosts.changeGhostsState(FRIGHTENED);
+                ghosts.changeGhostsSpeedModifier(3.8f);
+                std::this_thread::sleep_for(std::chrono::seconds(static_cast<uint32_t>(ghosts.modeDuration))); // How long the power pellet effect will last;
+                ghosts.changeGhostsState(NORMAL);
+                ghosts.changeGhostsSpeedModifier(4.0f);
+            });
+
+            timerThread.detach(); // Threads runs independently;
+        }
+
+        void checkForEndGame() {
+            //checkForPlayerCollisionsWGhosts(); // Check for player collisions with ghosts;
+            checkIfPlayerGotAllPellets();
+        }
+
+        // Check if player collided with ghosts;
+        void checkForPlayerCollisionsWGhosts() { if (ghosts.checkIfGhostsGotPacman()) { isGameOver = true; } }
+
+        // Check if player got all pellets;
+        void checkIfPlayerGotAllPellets() { if (howManyPelletsLeft == 0) { isGameOver = true; } }
+
+
+        // Handle the game coroutines;
+        void startGameCoroutines() {
+            std::thread timerThread([this] {
+                startGhostHandlerCoroutines();
+            });
+
+            timerThread.detach();
+        }
+
+        // Handles ghosts release and scatter timings;
+        void startGhostHandlerCoroutines() {
+            ghosts.blinky->setSpeedModifier(4.0f);
+            std::this_thread::sleep_for(std::chrono::seconds(4));
+
+            ghosts.pinky->setSpeedModifier(4.0f);
+            ghosts.inky->setSpeedModifier(4.0f);
+            std::this_thread::sleep_for(std::chrono::seconds(6));
+
+            ghosts.clyde->setSpeedModifier(4.0f);
+
+            // All ghosts are now released, start scatter behaviour at random times;
+
+            std::random_device rd; std::mt19937 gen(rd()); // Seed random number generator;
+            std::uniform_int_distribution<> distrib(25, 35); // Random time between 25 and 35 seconds;
+
+            while (!isGameOver) {
+                int randomTime = distrib(gen);
+                std::this_thread::sleep_for(std::chrono::seconds(randomTime));
+
+                if (ghosts.generalGhostState != FRIGHTENED) { ghosts.changeGhostsState(SCATTER); }
+                std::this_thread::sleep_for(std::chrono::seconds(static_cast<uint32_t>(ghosts.modeDuration)));
+                ghosts.changeGhostsState(NORMAL);
+            }
+
+        }
 
 
         void mainLoop() {
-            while (!glfwWindowShouldClose(window) && !closeApp) {
+            while (!glfwWindowShouldClose(window) && !closeApp && !isGameOver) {
 
                 float currentFrame = glfwGetTime();
                 deltaTime = currentFrame - lastFrame;
                 lastFrame = currentFrame;
 
-                processInput(window); // Use the input received from keyboard this frame to update the view matrix;
-                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front);
+                //processInput(window);  //
+                movePlayerAndCheckCollisions(); // Move player and check for collisions;
+                checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
+                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
+                checkForEndGame();
 
-                // printf("Position: %f, %f, %f;\n", viewCamera.position.x, viewCamera.position.y, viewCamera.position.z);
-
+                // std::cout << playerScore << std::endl;
                 drawFrame();
-
                 glfwPollEvents(); // Check if some special event happened;
             }
             vkDeviceWaitIdle(device);
@@ -1938,6 +2130,8 @@ class Pacman3D {
                         };
 
                         vertex.color = { 1.0f, 1.0f, 1.0f };
+
+                        vertex.materialID = GHOST_MAT;
 
                         if (uniqueVertices.count(vertex) == 0) {
                             uniqueVertices[vertex] = static_cast<uint32_t>(uniqueVertices.size());

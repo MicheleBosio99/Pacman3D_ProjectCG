@@ -22,6 +22,7 @@ enum Direction {
 class ViewCameraControl {
 
     public:
+
         glm::vec3 position; // Current player position;
         glm::vec3 front; // Vector that holde the current front direction;
         glm::vec3 up; // Vector that holde the up direction. This won't ever change in the current configuration so it is just as worldUp;
@@ -81,21 +82,25 @@ class ViewCameraControl {
             updateCameraVectors();
         }
 
+        void setPosition(glm::vec3 newPosition) { position = newPosition; }
+
     private:
 
         // Used to update the variables vectors to the inputs received;
         void updateCameraVectors() {
-            // Calculate the new front vector
+            // Calculate the new front vector;
             glm::vec3 newFront;
             newFront.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
             newFront.y = sin(glm::radians(pitch));
             newFront.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
             front = glm::normalize(newFront);
 
-            // Recalculate right and up vectors
-            right = glm::normalize(glm::cross(front, worldUp)); // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+            // Recalculate right and up vectors;
+            right = glm::normalize(glm::cross(front, worldUp)); // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement;
             up = glm::normalize(glm::cross(right, front));
         }
+
 };
+
 
 #endif

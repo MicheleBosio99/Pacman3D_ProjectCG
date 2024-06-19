@@ -73,8 +73,9 @@ class PelletModelHandler : public ModelHandler {
     public:
 
         int i, j; // Coordinates to the pellet in the grid system;
+        float pointsWhenEaten;
 
-        PelletModelHandler(glm::mat4 modelMatrix, std::string texturePath, int i, int j) : ModelHandler(modelMatrix, texturePath), i(i), j(j) { }
+        PelletModelHandler(glm::mat4 modelMatrix, std::string texturePath, int i, int j) : ModelHandler(modelMatrix, texturePath), i(i), j(j), pointsWhenEaten(10.0f) { }
 
         glm::mat4 getModelMatrix() override { return modelMatrix; }
 

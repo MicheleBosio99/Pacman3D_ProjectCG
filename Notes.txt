@@ -1,0 +1,6 @@
+In fragment shader the materialID is assigned as:
+
+- 0 = environment
+- 1 = sky
+- 2 = pellets
+- 3 = ghosts

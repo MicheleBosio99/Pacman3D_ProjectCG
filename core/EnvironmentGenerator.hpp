@@ -29,7 +29,8 @@ enum CellContent {
     GHOSTS_HUB, // Cell is one of the ghosts hub, the ones the ghosts came out from;
     TELEPORT_HORIZONTAL, // Cell on the map limit that teleports pacman to the other side of the maze horizontally;
     TELEPORT_VERTICAL, // Cell on the map limit that teleports pacman to the other side of the maze vertically;
-    PATH // Cell is a path;
+    PATH, // Cell is a path;
+    GHOST
 };
 
 
@@ -114,28 +115,42 @@ class MazeGenerator {
             float mazeCenterX = (maze.size() / 2.0f) * wallSize;
             float mazeCenterY = (maze[0].size() / 2.0f) * wallSize;
 
+            float wallScale = 0.85f; // Scale factor to make the walls smaller;
+
             for (uint32_t x = 0; x < maze.size(); x++) {
                 for (uint32_t y = 0; y < maze[0].size(); y++) {
 
-                    x_coord = x * wallSize - mazeCenterX;
-                    y_coord = y * wallSize - mazeCenterY;
-
-                    // Only if it is a wall;
                     if (maze[x][y] == WALL) {
+
+                        float negX = 1.0f - wallScale, negY = 1.0f - wallScale, posX = wallScale, posY = wallScale;
+
+                        if (x > 0 && maze[x - 1][y] == WALL) { negX = 0.0f; } // Up wall;
+                        if (y > 0 && maze[x][y - 1] == WALL) { negY = 0.0f; } // Right wall;
+                        if (x < maze.size() - 1 && maze[x + 1][y] == WALL) { posX = 1.0f; } // Down wall;
+                        if (y < maze[0].size() - 1 && maze[x][y + 1] == WALL) { posY = 1.0f; } // Left wall;
+
+                        if(x == 0) { negX = 0.0f; } // Left limit;
+                        else if (x == maze.size() - 1) { posX = 1.0f; } // Right limit;
+                        if(y == 0) { negY = 0.0f; } // Up limit;
+                        else if(y == maze[0].size() - 1) { posY = 1.0f; } // Down limit;
+
+                        x_coord = x * wallSize - mazeCenterX;
+                        y_coord = y * wallSize - mazeCenterY;
 
                         // Create 8 vertices for the top and bottom of the wall;
                         std::vector<Vertex> wallVertices = {
                             // Bottom face;
-                            { { x_coord, 0, y_coord }, color, glm::vec2(0.0f, 0.0f) },
-                            { { x_coord + 1, 0, y_coord }, color, glm::vec2(0.25f, 0.0f) },
-                            { { x_coord + 1, 0, y_coord + 1 }, color, glm::vec2(0.5f, 0.0f) },
-                            { { x_coord, 0, y_coord + 1 }, color, glm::vec2(0.75f, 0.0f) },
+                            { { x_coord + negX, 0.0f, y_coord + negY }, color, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 0.0f, y_coord + negY }, color, glm::vec2(0.25f, 0.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 0.0f, y_coord + posY }, color, glm::vec2(0.5f, 0.0f), ENVIRONMENT_MAT },
+                            { { x_coord + negX, 0.0f, y_coord + posY }, color, glm::vec2(0.75f, 0.0f), ENVIRONMENT_MAT },
                             // Top face;
-                            { { x_coord, 2, y_coord }, color, glm::vec2(0.0f, 1.0f) },
-                            { { x_coord + 1, 2, y_coord }, color, glm::vec2(0.25f, 1.0f) },
-                            { { x_coord + 1, 2, y_coord + 1 }, color, glm::vec2(0.5f, 1.0f) },
-                            { { x_coord, 2, y_coord + 1 }, color, glm::vec2(0.75f, 1.0f) }
+                            { { x_coord + negX, 2.0f, y_coord + negY }, color, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(0.25f, 1.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(0.5f, 1.0f), ENVIRONMENT_MAT },
+                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(0.75f, 1.0f), ENVIRONMENT_MAT } // Added all the , 0 to include the materialID of vertices for shader;
                         };
+                        // This has a strange structure in the corners since it has the corner coming out, but it is hard to solve so I rather leave it like this;
 
                         // Add the vertices to the mazeVertices vector;
                         for (const auto& vertex : wallVertices) { mazeVertices.push_back(vertex); }
@@ -166,7 +181,6 @@ class MazeGenerator {
             }
         }
 };
-
 
 // Sky generator class creates the sky mesh. The sky is a dome;gene
 class SkyGenerator {
@@ -218,7 +232,7 @@ class SkyGenerator {
                     float u = static_cast<float>(lon) / numLatSegments;
                     float v = static_cast<float>(lat) / numLonSegments;
 
-                    skyVertices.push_back(Vertex{ {x, y, z}, color, {u, v} });
+                    skyVertices.push_back(Vertex{ {x, y, z}, color, {u, v}, SKY_MAT });
                 }
             }
 
@@ -240,7 +254,6 @@ class SkyGenerator {
             }
         }
 };
-
 
 // Floor generator class creates the floor mesh;
 class FloorGenerator {
@@ -280,7 +293,7 @@ class FloorGenerator {
                     float u = static_cast<float>(x) / numOfSegments * textureRepeatCount;
                     float v = static_cast<float>(z) / numOfSegments * textureRepeatCount;
 
-                    floorVertices.push_back(Vertex{ {xPos, 0.0f, zPos}, color, {u, v} });
+                    floorVertices.push_back(Vertex{ {xPos, 0.0f, zPos}, color, {u, v}, ENVIRONMENT_MAT });
                 }
             }
 
@@ -306,11 +319,93 @@ class FloorGenerator {
 
 };
 
+// Teleporter generator class creates the mesh of the teleporter;
+class TeleporterGenerator {
+
+    public:
+
+        float teleporterWidth = 1.3f;
+        float teleporterHeight = 2.0f;
+        glm::vec3 teleporterPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        std::vector<Vertex> teleporterVertices;
+        std::vector<uint32_t> teleporterIndices;
+
+        TeleporterGenerator() { generateTeleporterMesh(); }
+
+        std::vector<Vertex> getTeleporterVertices() { return teleporterVertices; }
+        std::vector<uint32_t> getTeleporterIndices() { return teleporterIndices; }
+
+    private:
+
+        void generateTeleporterMesh() {
+
+            teleporterVertices.clear();
+            teleporterIndices.clear();
+
+            float halfWidth = teleporterWidth / 2.0f;
+
+            // Fill vertices vector;
+            std::vector<Vertex> teleporterVerticesTemp = {
+                { { teleporterPosition.x + halfWidth, teleporterPosition.y, teleporterPosition.z }, color, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                { { teleporterPosition.x - halfWidth, teleporterPosition.y, teleporterPosition.z }, color, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                { { teleporterPosition.x + halfWidth, teleporterPosition.y + teleporterHeight, teleporterPosition.z }, color, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
+                { { teleporterPosition.x - halfWidth, teleporterPosition.y + teleporterHeight, teleporterPosition.z }, color, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT }
+            };
+            for (const auto& vertex : teleporterVerticesTemp) { teleporterVertices.push_back(vertex); }
+
+            // Fill indices vector;
+            std::vector<uint32_t> teleporterIndicesTemp = { 0, 1, 2, 1, 2, 3 };
+            for (const auto& index : teleporterIndicesTemp) { teleporterIndices.push_back(index); }
+        }
+};
+
+// Gate generator class creates the mesh of the gate;
+class GateGenerator {
+
+    public:
+
+        float gateWidth = 2.3f;
+        float gateHeight = 1.5f;
+
+        std::vector<Vertex> gateVertices;
+        std::vector<uint32_t> gateIndices;
+
+        GateGenerator() { generateGateMesh(); }
+
+        std::vector<Vertex> getGateVertices() { return gateVertices; }
+        std::vector<uint32_t> getGateIndices() { return gateIndices; }
+
+    private:
+
+        void generateGateMesh() {
+
+            gateVertices.clear();
+            gateIndices.clear();
+
+            glm::vec3 gatePosition(0.0f, 0.0f, 0.0f);
+            float halfWidth = gateWidth / 2.0f;
+
+            // Fill vertices vector;
+            std::vector<Vertex> gateVerticesTemp = {
+                { { gatePosition.x, gatePosition.y, gatePosition.z + halfWidth }, color, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                { { gatePosition.x, gatePosition.y, gatePosition.z - halfWidth }, color, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                { { gatePosition.x, gatePosition.y + gateHeight, gatePosition.z + halfWidth }, color, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
+                { { gatePosition.x, gatePosition.y + gateHeight, gatePosition.z - halfWidth }, color, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT }
+            };
+            for (const auto& vertex : gateVerticesTemp) { gateVertices.push_back(vertex); }
+
+            // Fill indices vector;
+            std::vector<uint32_t> gateIndicesTemp = { 0, 1, 2, 1, 2, 3 };
+            for (const auto& index : gateIndicesTemp) { gateIndices.push_back(index); }
+        }
+};
 
 // Normal pellet generator class for pellets;
 class PelletGenerator {
 
     public:
+
         bool isPowerPellet;
         glm::vec3 position;
         float pelletDiameter;
@@ -320,13 +415,14 @@ class PelletGenerator {
         std::vector<Vertex> pelletVertices;
         std::vector<uint32_t> pelletIndices;
 
-        PelletGenerator(glm::vec3 position, bool isPowerPellet = false, float pelletDiameter = 0.2f, float points = 25.0f)
+        PelletGenerator(glm::vec3 position, bool isPowerPellet = false, float pelletDiameter = 0.2f, float points = 10.0f)
             : position(position), isPowerPellet(isPowerPellet), pelletDiameter(pelletDiameter), eaten(false), points(points) { generatePelletMesh(); }
 
         std::vector<Vertex> getPelletVertices() { return pelletVertices; }
         std::vector<uint32_t> getPelletIndices() { return pelletIndices; }
 
     private:
+
         void generatePelletMesh() {
             pelletVertices.clear();
             pelletIndices.clear();
@@ -355,7 +451,7 @@ class PelletGenerator {
                     float u = static_cast<float>(lon) / numLonSegments;
                     float v = static_cast<float>(lat) / numLatSegments;
 
-                    pelletVertices.push_back(Vertex{ { x, y, z }, color, { u, v } });
+                    pelletVertices.push_back(Vertex{ { x, y, z }, color, { u, v }, PELLET_MAT });
                 }
             }
 
@@ -386,6 +482,8 @@ class EnvironmentGenerator {
         MazeGenerator mazeGenerator;
         FloorGenerator floorGenerator;
         SkyGenerator skyGenerator;
+        TeleporterGenerator teleporterGenerator;
+        GateGenerator gateGenerator;
 
 };
 
