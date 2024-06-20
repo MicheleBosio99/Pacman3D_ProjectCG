@@ -84,6 +84,13 @@ class ViewCameraControl {
 
         void setPosition(glm::vec3 newPosition) { position = newPosition; }
 
+        void pacmanGotEatenBehaviour(int time) {
+            float s = movementSpeed;
+            movementSpeed = 0.0f;
+            std::this_thread::sleep_for(std::chrono::seconds(time));
+            movementSpeed = s;
+        }
+
     private:
 
         // Used to update the variables vectors to the inputs received;

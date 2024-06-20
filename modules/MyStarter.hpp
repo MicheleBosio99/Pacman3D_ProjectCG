@@ -35,11 +35,15 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+
 
 const uint32_t WIDTH = 1600;
 const uint32_t HEIGHT = 1080;
 
-const float pacmanHeight = 8.6f;
+const float pacmanHeight = 0.6f;
 
 const std::string BASE_TEXTURE_PATH = "textures/test/BlackBrickedWall.png";
 
@@ -154,10 +158,13 @@ static std::vector<char> readFile(const std::string& filename) {
 #include "../core/EnvironmentGenerator.hpp"
 #include "../core/GhostsBehaviour.hpp"
 #include "../core/ModelHandler.hpp"
+#include "../core/SoundManager.hpp"
+#undef max
+#undef min
 
-glm::vec3 PacmanStartingPosition(8.5f, pacmanHeight, 0.0f); // Set default Pacman starting position in world;
+glm::vec3 pacmanStartingPosition = glm::vec3(8.5f, pacmanHeight, 0.0f); // Set default Pacman starting position in world;
 
-ViewCameraControl viewCamera = ViewCameraControl(PacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, -55.0f, 5.0f); // Controller that handles view camera. Gets position, up, yaw, pitch and speed;
+ViewCameraControl viewCamera = ViewCameraControl(pacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, -55.0f, 5.0f); // Controller that handles view camera. Gets position, up, yaw, pitch and speed;
 
 float deltaTime = 0.0f; // Time between current frame and last frame;
 float lastFrame = 0.0f; // Time of last frame;
@@ -224,13 +231,22 @@ class Pacman3D {
 
     public:
 
+        void run2() {
+            initWindow();
+            initVulkan(); // But without the part that loads the models;
+            showStartingMenu();
+            startPacmanGame();
+            showGameOver();
+            cleanup();
+        }
+
         void run() {
             initWindow();
             otherInitializations();
             loadModelHandlers();
             initVulkan();
             startGameCoroutines();
-            mainLoop();
+            mainGameLoop();
             cleanup();
         }
 
@@ -282,11 +298,12 @@ class Pacman3D {
 
         std::vector<std::vector<std::tuple<std::shared_ptr<ModelHandler>, bool>>> pelletsInMaze; // Hold pellets in maze and their status;
 
+        int powerPelletEaten = 0; // Power pellet eaten;
         float playerScore = 0.0f; // Player score;
         int howManyPelletsLeft = 0; // How many pellets are left in the maze;
-
-
-        bool isGameOver = false; // Is the game over?;
+        bool pacmanDefeated = false; // Has pacman been eaten?;
+        bool isGameFinished = false; // Is the game finished?;
+        int livesLeft = 100; // Pacman lives;
 
 
         void initWindow() {
@@ -305,7 +322,6 @@ class Pacman3D {
             glfwSetWindowUserPointer(window, this);
             glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         } 
-
 
         void initVulkan() {
             createInstance(); // Create a Vulkan instance;
@@ -349,6 +365,40 @@ class Pacman3D {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             glfwSetCursorPosCallback(window, mouse_callback); // Set the callback to handle the mouse updates;
             // glfwSetMouseButtonCallback(window, mouse_button_callback); // Set the callback for the mouse only if the left button gets clicked;
+
+            initializeSounds();
+        }
+
+        void initializeSounds() {
+            if (!SoundManager::initSoundManager()) { return; }
+
+            const std::string initialMenuBGMusic = "initialMenuBGMusic";
+            const std::string initialMenuBGMusicPath = "sounds/pacman_beginning.wav";
+
+            std::unordered_map<std::string, std::string> soundsToLoad = {
+
+                { "pacman_death", "sounds/pacman_death.wav" },
+                { "pacman_eat-fruit", "sounds/pacman_eat-fruit.wav" },
+                { "pacman_ghost-eaten", "sounds/pacman_ghost-eaten.wav" },
+                { "pacman_ghost-siren", "sounds/pacman_ghost-siren.wav" },
+                { "pacman_ghosts-to-hub", "sounds/pacman_ghosts-to-hub.wav" },
+                { "pacman_intermission", "sounds/pacman_intermission.wav" },
+                { "pacman_intro", "sounds/pacman_intro.wav" },
+                { "pacman_new-highscore", "sounds/pacman_new-highscore.wav" },
+                { "pacman_power-pellet-eaten", "sounds/pacman_power-pellet-eaten.wav" },
+                { "pacman_respawn", "sounds/pacman_respawn.wav" },
+                { "pacman_teleport", "sounds/pacman_teleport.wav" },
+                { "pacman_wakawaka", "sounds/pacman_wakawaka-single.wav" },
+
+            };
+
+            for (const auto& sound : soundsToLoad) {
+                if (!SoundManager::loadSound(sound.first, sound.second)) {
+                    std::cerr << "Failed to load " << sound.first << "." << std::endl;
+                    SoundManager::deInitSoundManager();
+                    return;
+                }
+			}
         }
 
         // Create the model handlers for needed models. Temporary, will be done with a JSON later;
@@ -478,8 +528,8 @@ class Pacman3D {
             }
         }
 
-        // Check if player collided with walls; // Doesnt work completely, it fucks up sometimes; WHYYYYYYY;
-        void movePlayerAndCheckCollisions() {
+        // Check if player collided with walls;
+        void movePlayerAndCheckCollisionsWithWalls() {
             auto maze = envGenerator.mazeGenerator.getMaze();
 
             glm::vec3 currentPosition = viewCamera.position;
@@ -487,11 +537,19 @@ class Pacman3D {
             processInput(window); // Use the input received from keyboard this frame to update the view matrix;
             glm::vec3 nextPosition = viewCamera.position;
 
+            updatePlayerPositionForSound();
+
             glm::ivec2 playerPosInMaze = toGridCoordinates(nextPosition, maze.size(), maze[0].size());
 
-            if ((playerPosInMaze.x == 13 || playerPosInMaze.x == 14 || playerPosInMaze.x == 15) && playerPosInMaze.y == 28) { viewCamera.setPosition(glm::vec3(-0.5f, pacmanHeight, 13.5f)); }
-            else if ((playerPosInMaze.x == 13 || playerPosInMaze.x == 14 || playerPosInMaze.x == 15) && playerPosInMaze.y == -1) { viewCamera.setPosition(glm::vec3(-0.5f, pacmanHeight, -13.5f)); }
-            else if (playerPosInMaze.x < 0 || playerPosInMaze.x > maze.size() || playerPosInMaze.y < 0 || playerPosInMaze.y > maze[0].size()) { isGameOver = true; }
+            if ((playerPosInMaze.x == 13 || playerPosInMaze.x == 14 || playerPosInMaze.x == 15) && playerPosInMaze.y == 28) {
+                SoundManager::playSound("pacman_teleport");
+                viewCamera.setPosition(glm::vec3(-0.5f, pacmanHeight, 13.5f));
+            }
+            else if ((playerPosInMaze.x == 13 || playerPosInMaze.x == 14 || playerPosInMaze.x == 15) && playerPosInMaze.y == -1) {
+                SoundManager::playSound("pacman_teleport");
+                viewCamera.setPosition(glm::vec3(-0.5f, pacmanHeight, -13.5f));
+            }
+            else if (playerPosInMaze.x < 0 || playerPosInMaze.x > maze.size() || playerPosInMaze.y < 0 || playerPosInMaze.y > maze[0].size()) { return; }
             else if (maze[playerPosInMaze.x][playerPosInMaze.y] == WALL || maze[playerPosInMaze.x][playerPosInMaze.y] == GHOSTS_HUB) {
 
                 glm::vec3 movement = nextPosition - currentPosition;
@@ -518,10 +576,23 @@ class Pacman3D {
             }
         }
 
+        // Update player position for sound;
+        void updatePlayerPositionForSound() {
+            SoundManager::engine->setListenerPosition(
+                { viewCamera.position.x,viewCamera.position.y, viewCamera.position.z },
+                { viewCamera.front.x,viewCamera.front.y, viewCamera.front.z },
+                { 0.0f, 0.0f, 0.0f },
+                { viewCamera.up.x,viewCamera.up.y, viewCamera.up.z }
+            );
+        }
+
+        // Check if player position is a valid position;
         bool isValidPosition(glm::ivec2 pos, const std::vector<std::vector<int>>& maze) { return !outOfBounds(pos, maze) && maze[pos.x][pos.y] != WALL && maze[pos.x][pos.y] != GHOSTS_HUB; }
 
+        // Check if position is out of bounds;
         bool outOfBounds(glm::ivec2 pos, const std::vector<std::vector<int>>& maze) { return pos.x < 0 || pos.x >= maze.size() || pos.y < 0 || pos.y >= maze[0].size(); }
 
+        // Convert world coordinates to grid coordinates;
         glm::ivec2 toGridCoordinates(const glm::vec3& worldPos, int height, int width) { return glm::ivec2(floor(worldPos.x) + height / 2, floor(- worldPos.z) + width / 2); }
 
         // Check if player collided with pellets;
@@ -542,6 +613,7 @@ class Pacman3D {
 					modelHandlers.erase(it);
 
                     howManyPelletsLeft --;
+                    SoundManager::queueSound("pacman_wakawaka");
 				}
 			}
             else if (maze[playerPosInMaze.x][playerPosInMaze.y] == POWER_PELLET) {
@@ -561,27 +633,36 @@ class Pacman3D {
         // Change ghosts behaviour when power pellet gets eaten;
         void powerPelletGotEaten() {
             std::thread timerThread([this] {
+                powerPelletEaten ++;
+                if (!SoundManager::isSoundPlaying("pacman_power-pellet-eaten")) { SoundManager::playSoundLooped("pacman_power-pellet-eaten"); }
+
+                float s = ghosts.speedModifier;
                 ghosts.changeGhostsState(FRIGHTENED);
-                ghosts.changeGhostsSpeedModifier(3.8f);
-                std::this_thread::sleep_for(std::chrono::seconds(static_cast<uint32_t>(ghosts.modeDuration))); // How long the power pellet effect will last;
-                ghosts.changeGhostsState(NORMAL);
-                ghosts.changeGhostsSpeedModifier(4.0f);
+                ghosts.changeGhostsSpeedModifier(s * 0.92f);
+                std::this_thread::sleep_for(std::chrono::seconds(static_cast<uint32_t>(ghosts.modeDuration)));
+
+                powerPelletEaten --;
+                if (powerPelletEaten == 0) {
+                    ghosts.changeGhostsState(NORMAL);
+                    ghosts.changeGhostsSpeedModifier(s);
+                    if (SoundManager::isSoundPlaying("pacman_power-pellet-eaten")) { SoundManager::stopSound("pacman_power-pellet-eaten"); }
+                }
             });
 
             timerThread.detach(); // Threads runs independently;
         }
 
+        // Check if player collided with ghosts or finished pellets;
         void checkForEndGame() {
-            //checkForPlayerCollisionsWGhosts(); // Check for player collisions with ghosts;
-            checkIfPlayerGotAllPellets();
+            checkForPlayerCollisionsWGhosts(); // Check for player collisions with ghosts;
+            checkIfPlayerGotAllPellets(); // Check if player got all pellets;
         }
 
         // Check if player collided with ghosts;
-        void checkForPlayerCollisionsWGhosts() { if (ghosts.checkIfGhostsGotPacman()) { isGameOver = true; } }
+        void checkForPlayerCollisionsWGhosts() { if (ghosts.checkIfGhostsGotPacman()) { SoundManager::playSound("pacman_death"); pacmanDefeated = true; } }
 
         // Check if player got all pellets;
-        void checkIfPlayerGotAllPellets() { if (howManyPelletsLeft == 0) { isGameOver = true; } }
-
+        void checkIfPlayerGotAllPellets() { if (howManyPelletsLeft == 0) { pacmanDefeated = true; } }
 
         // Handle the game coroutines;
         void startGameCoroutines() {
@@ -594,21 +675,21 @@ class Pacman3D {
 
         // Handles ghosts release and scatter timings;
         void startGhostHandlerCoroutines() {
-            ghosts.blinky->setSpeedModifier(4.0f);
+            ghosts.blinky->setSpeedModifier(ghosts.speedModifier);
             std::this_thread::sleep_for(std::chrono::seconds(4));
 
-            ghosts.pinky->setSpeedModifier(4.0f);
-            ghosts.inky->setSpeedModifier(4.0f);
+            ghosts.pinky->setSpeedModifier(ghosts.speedModifier);
+            ghosts.inky->setSpeedModifier(ghosts.speedModifier);
             std::this_thread::sleep_for(std::chrono::seconds(6));
 
-            ghosts.clyde->setSpeedModifier(4.0f);
+            ghosts.clyde->setSpeedModifier(ghosts.speedModifier);
 
             // All ghosts are now released, start scatter behaviour at random times;
 
             std::random_device rd; std::mt19937 gen(rd()); // Seed random number generator;
-            std::uniform_int_distribution<> distrib(25, 35); // Random time between 25 and 35 seconds;
+            std::uniform_int_distribution<> distrib(18, 24); // Random time between 18 and 24 seconds;
 
-            while (!isGameOver) {
+            while (!pacmanDefeated) {
                 int randomTime = distrib(gen);
                 std::this_thread::sleep_for(std::chrono::seconds(randomTime));
 
@@ -616,30 +697,128 @@ class Pacman3D {
                 std::this_thread::sleep_for(std::chrono::seconds(static_cast<uint32_t>(ghosts.modeDuration)));
                 ghosts.changeGhostsState(NORMAL);
             }
-
         }
 
+        // Handle pacman defeat;
+        void pacmanGotEaten() {
+			livesLeft --;
+			if (livesLeft == 0) { isGameFinished = true; }
+			else {
+				SoundManager::playSound("pacman_respawn");
 
-        void mainLoop() {
-            while (!glfwWindowShouldClose(window) && !closeApp && !isGameOver) {
+                //std::cout << "Pacman got eaten! Lives left: " << livesLeft << std::endl;
+
+                //viewCamera.setPosition(pacmanStartingPosition);
+                //viewCamera.front = glm::vec3(0.0f, 1.0f, 0.0f);
+                ///*std::thread makePlayerStayStill([] { viewCamera.pacmanGotEatenBehaviour(3); });
+                //makePlayerStayStill.detach();*/
+
+                ghosts.resetAfterEatingPacman(6);
+                pacmanDefeated = false;
+			}
+		}
+
+        // Handle game finish;
+        void handleFinishedGame() { isGameFinished = true; SoundManager::playSound("pacman_intermission"); }
+
+
+        void mainGameLoop() {
+            while (!glfwWindowShouldClose(window) && !closeApp && !isGameFinished) {
 
                 float currentFrame = glfwGetTime();
                 deltaTime = currentFrame - lastFrame;
                 lastFrame = currentFrame;
 
                 //processInput(window);  //
-                movePlayerAndCheckCollisions(); // Move player and check for collisions;
+                movePlayerAndCheckCollisionsWithWalls(); // Move player and check for collisions;
                 checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
                 ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
                 checkForEndGame();
 
-                // std::cout << playerScore << std::endl;
+                if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); }
+                else if (pacmanDefeated and livesLeft == 0) { handleFinishedGame(); }
+
                 drawFrame();
                 glfwPollEvents(); // Check if some special event happened;
             }
             vkDeviceWaitIdle(device);
         }
+
+
+        // _____________________________________________________________________________________________________________________________________________________________________________________________________
+
+
+        // IMGUI SETUP;
+
+        
+
+
+
+        // _____________________________________________________________________________________________________________________________________________________________________________________________________
+
+        // GAME LIFECYCLE LOGIC;
+
+        bool gameIsStartedScreen = false;
+        bool gameHasEndedScreen = false;
+        bool closeGameOverScreen = false;
+
+        // Show the starting menu interface;
+        void showStartingMenu() {
+
+            // Load models to display initial menu interface;
+
+			while (!glfwWindowShouldClose(window) && !gameIsStartedScreen) {
+
+                // Show starting menu until game is started;
+
+				glfwPollEvents();
+			}
+		}
+
+
+        // Run the actual game loop;
+        void startPacmanGame() {
+			
+            // load models used in game;
+
+            // mainGameLoop();
+            while (!glfwWindowShouldClose(window) && !gameHasEndedScreen) {
+
+                // Play game;
+
+                glfwPollEvents();
+            }
+		}
+
+
+        // Game is over, show game over screen;
+        void showGameOver() {
+
+            // load interface to display game over screen;
+
+            while (!glfwWindowShouldClose(window) && !closeGameOverScreen) {
+
+                // Play game;
+
+                glfwPollEvents();
+            }
+
+        }
+
+
+        // Main game loop, contains starting menu screen, game screen and game over screen. When game over then back to the menu;
+        void mainLoop() {
+            while (!glfwWindowShouldClose(window)) {
+                showStartingMenu();
+                startPacmanGame();
+                showGameOver();
+            }
+        }
+
+
+
+       // _____________________________________________________________________________________________________________________________________________________________________________________________________
 
 
         void cleanup() {

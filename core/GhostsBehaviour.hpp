@@ -14,6 +14,7 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include "EnvironmentGenerator.hpp"
+#include "SoundManager.hpp"
 
 
 const float ghostsHeight = 0.6f;
@@ -55,6 +56,8 @@ class Ghost {
         glm::vec3 color; // Ghost main color;
         glm::vec3 frightenedColor; // Ghost color when frightened;
 
+        std::string soundName = ""; // Name of the sound related to ghost;
+
         float currentSpeed; // Current ghost speed;
         float speedModifier; // Speed modifier (normally 1.0f);
         float sizeModifier; // Size modifier (normally 1.0f);
@@ -84,6 +87,10 @@ class Ghost {
 
         float elapsedTime = 0.0f;
 
+        bool ghostGotEaten = false;
+
+        int i;
+
     public:
 
         // Constructor;
@@ -99,26 +106,33 @@ class Ghost {
         // Compute all needed to move the model of the ghost in the right direction for reaching pacman with its behaviour specifics;
         void move(float deltaTime, int index, std::vector<glm::ivec2> ghostsPositionsInMap, glm::vec3 pacmanPosition, glm::vec3 pacmanDirection = glm::vec3(0.0f)) {
 
+            // if (soundName == "") { initializeGhostSirenSounds(); }
+
             if (deltaTime > 0.5f) { return; }
+
+            // pacmanPosition = computeRealPacmanPosition(pacmanPosition - glm::vec3(0.5f, 0.0f, -0.5f));
 
             glm::vec3 currentTargetPosition = pacmanPosition;
             switch (state) {
                 case NORMAL: currentTargetPosition = pacmanPosition; break;
-				case FRIGHTENED: currentTargetPosition = pacmanPosition; break;
+				case FRIGHTENED: currentTargetPosition = initialPosition; break;
 				case SCATTER: currentTargetPosition = scatterPosition; break;
             }
             setTargetPosition(currentTargetPosition, glm::ivec2(pacmanDirection.x, pacmanDirection.z));
 
             currentPositionInMap = toGridCoordinates(currentPosition - glm::vec3(0.5f, 0.0f, -0.5f));
             targetPositionInMap = toGridCoordinates(targetPosition - glm::vec3(0.5f, 0.0f, -0.5f));
-            if (currentPositionInMap == ((state == FRIGHTENED || state == SCATTER) ? toGridCoordinates(pacmanPosition - glm::vec3(0.5f, 0.0f, -0.5f)) : targetPositionInMap)) {
-                std::cout << "Got Pacman" << std::endl; return; ghostGotPacman = true; return;
+
+
+            if (currentPositionInMap == toGridCoordinates(pacmanPosition - glm::vec3(0.5f, 0.0f, -0.5f))) {
+                if (state != FRIGHTENED) { ghostGotPacman = true; return; }
+                else { SoundManager::playSound("pacman_ghost-eaten"); ghostGotEaten = true; ghostGotEatenBehaviour(); }
             }
 
             shortestPath = computeShortestPath(index, ghostsPositionsInMap);
             // printMazeWithPath(maze, shortestPath.path, index);
 
-            if (shortestPath.path.empty() || shortestPath.pathInWorld.empty() || shortestPath.directions.empty() || shortestPath.distance == -1) { return; std::cout << "Ret;" << std::endl; return; }
+            if (shortestPath.path.empty() || shortestPath.pathInWorld.empty() || shortestPath.directions.empty() || shortestPath.distance == -1) { return; i++;  std::cout << "Ret: " << i << std::endl; return; }
 
             glm::ivec2 nextCellInMap = shortestPath.path[1];
             glm::vec3 nextCell = shortestPath.pathInWorld[1];
@@ -148,6 +162,67 @@ class Ghost {
 
             // Update the current position;
             currentPosition = newPosition;
+
+            // Generate directional sound;
+            //if(glm::distance)
+
+            glm::vec3 soundDirection = glm::normalize(pacmanPosition - currentPosition);
+            irrklang::vec3df irrKlangPosition(currentPosition.x, currentPosition.y, currentPosition.z);
+
+            // Play/Update the sound;
+            /*if (!SoundManager::isSoundPlaying(soundName)) {
+                SoundManager::soundsPlaying[soundName]->setMinDistance(100.0f);
+                SoundManager::soundsPlaying[soundName]->setPosition(irrKlangPosition);
+                SoundManager::soundsPlaying[soundName]->setIsPaused(false);
+            }
+            else {
+                SoundManager::updateSoundPosition(soundName, irrKlangPosition);
+            }*/
+        }
+
+        // Behaviour when the ghost gets eaten;
+        void ghostGotEatenBehaviour(int time = 5) {
+            std::thread eatenThread([this, time] {
+                modelMatrix = initialMatrixTransf * glm::translate(glm::mat4(1.0f), initialPosition);
+                currentPosition = initialPosition;
+
+                float s = speedModifier;
+                speedModifier = 0.0f;
+                std::this_thread::sleep_for(std::chrono::seconds(time));
+                speedModifier = s;
+                ghostGotEaten = false;
+            });
+
+            eatenThread.detach(); // Threads runs independently;
+        }
+
+        // Compute the real pacman position;
+        glm::vec3 computeRealPacmanPosition(glm::vec3 pacmanPosition) {
+            /*float dummyVariable;
+            glm::ivec2 pacmanPositionInMap = toGridCoordinates(pacmanPosition);
+
+            if (maze[pacmanPositionInMap.x][pacmanPositionInMap.y] == WALL) {
+
+                if (std::modff(pacmanPosition.x, &dummyVariable) < 0.15f) { return pacmanPosition - glm::vec3(0.2f, 0.0f, 0.0f); }
+                else if (std::modff(pacmanPosition.x, &dummyVariable) > 0.85f) { return pacmanPosition + glm::vec3(0.2f, 0.0f, 0.0f); }
+
+                if (std::modff(pacmanPosition.z, &dummyVariable) < 0.15f) { return pacmanPosition - glm::vec3(0.2f, 0.0f, 0.0f); }
+                else if (std::modff(pacmanPosition.z, &dummyVariable) > 0.85f) { return pacmanPosition + glm::vec3(0.2f, 0.0f, 0.0f); }
+
+                std::cout << pacmanPosition.x << " " << pacmanPosition.z << std::endl;
+            }*/
+        }
+
+        // Initialize the ghost siren sounds;
+        void initializeGhostSirenSounds() {
+            soundName = std::format("pacman_{}-siren", name);
+            irrklang::vec3df irrKlangPos(currentPosition.x, currentPosition.y, currentPosition.z);
+            irrklang::ISound* ghostSirenSound = SoundManager::playSound3D("pacman_ghost-siren", irrKlangPos, true, true);
+            SoundManager::soundsPlaying[soundName] = ghostSirenSound;
+
+            ghostSirenSound->setMinDistance(20.0f);
+            ghostSirenSound->setPosition(irrKlangPos);
+            ghostSirenSound->setIsPaused(false);
         }
 
         // Determine equivalence among floats;
@@ -179,6 +254,12 @@ class Ghost {
 
         // Setter of ghost speedModifier;
         void setSpeedModifier(float speedModifier) { this->speedModifier = speedModifier; }
+
+        // Getter of ghost got eaten;
+        bool didGhostGotEaten() { return ghostGotEaten; }
+
+        // Setter of ghost got eaten;
+        void setGhostGotEaten(bool ghostGotEaten) { this->ghostGotEaten = ghostGotEaten; }
 
 
     private :
@@ -377,8 +458,8 @@ class GhostCollection {
 
     public:
 
-        float speedModifier = 0.0f;
-        float modeDuration = 8.0f;
+        float speedModifier = 4.0f;
+        float modeDuration = 6.0f;
         GhostState generalGhostState = NORMAL;
 
         std::shared_ptr<ChaserGhost> blinky;
@@ -390,37 +471,49 @@ class GhostCollection {
 
         GhostCollection(std::vector<std::vector<int>> maze) :
             blinky(std::make_shared<ChaserGhost>
-                ("Blinky", glm::vec3(1.0f, 0.0f, 0.0f), maze, glm::vec3(-3.5f, ghostsHeight, 0.5f), glm::vec3(-13.5f, ghostsHeight, 12.5f), 1.0f, speedModifier, modeDuration)),
+                ("Blinky", glm::vec3(1.0f, 0.0f, 0.0f), maze, glm::vec3(-1.5f, ghostsHeight, 0.0f), glm::vec3(-13.5f, ghostsHeight, 12.5f), 1.0f, 0.0f, modeDuration)),
             pinky(std::make_shared<AmbusherGhost>
-                ("Pinky", glm::vec3(1.0f, 0.7f, 0.9f), maze, glm::vec3(0.0f, ghostsHeight, 2.0f), glm::vec3(-13.5f, ghostsHeight, -12.5f), 1.0f, speedModifier, modeDuration, 4)),
+                ("Pinky", glm::vec3(1.0f, 0.7f, 0.9f), maze, glm::vec3(0.0f, ghostsHeight, 2.0f), glm::vec3(-13.5f, ghostsHeight, -12.5f), 1.0f, 0.0f, modeDuration, 4)),
             inky(std::make_shared<AmbusherGhost>
-                ("Inky", glm::vec3(0.5f, 0.96f, 1.0f), maze, glm::vec3(0.0f, ghostsHeight, 0.0f), glm::vec3(13.5f, ghostsHeight, 12.5f), 1.0f, speedModifier, modeDuration, 2)),
+                ("Inky", glm::vec3(0.5f, 0.96f, 1.0f), maze, glm::vec3(0.0f, ghostsHeight, 0.0f), glm::vec3(13.5f, ghostsHeight, 12.5f), 1.0f, 0.0f, modeDuration, 2)),
             clyde(std::make_shared<ProtectorGhost>
-                ("Clyde", glm::vec3(0.91f, 0.7f, 0.0f), maze, glm::vec3(0.0f, ghostsHeight, -2.0f), glm::vec3(13.5f, ghostsHeight, -12.5f), 1.0f, speedModifier, modeDuration)) {
+                ("Clyde", glm::vec3(0.91f, 0.7f, 0.0f), maze, glm::vec3(0.0f, ghostsHeight, -2.0f), glm::vec3(13.5f, ghostsHeight, -12.5f), 1.0f, 0.0f, modeDuration)) {
 
             ghostsPositionsInMap = { blinky->getCurrentPositionInMap(), pinky->getCurrentPositionInMap(), inky->getCurrentPositionInMap(), clyde->getCurrentPositionInMap() };
         }
 
         void moveAllGhosts(float deltaTime, glm::vec3 playerPosition, glm::vec3 playerDirection) {
-            blinky->move(deltaTime, 0, ghostsPositionsInMap, playerPosition); ghostsPositionsInMap[0] = blinky->getCurrentPositionInMap();
-            pinky->move(deltaTime, 1, ghostsPositionsInMap, playerPosition,  playerDirection); ghostsPositionsInMap[1] = pinky->getCurrentPositionInMap();
-            inky->move(deltaTime, 2, ghostsPositionsInMap, playerPosition, playerDirection); ghostsPositionsInMap[2] = inky->getCurrentPositionInMap();
-            clyde->move(deltaTime, 3, ghostsPositionsInMap, playerPosition); ghostsPositionsInMap[3] = clyde->getCurrentPositionInMap();
+            if(!blinky->didGhostGotEaten()) blinky->move(deltaTime, 0, ghostsPositionsInMap, playerPosition); ghostsPositionsInMap[0] = blinky->getCurrentPositionInMap();
+            if(!pinky->didGhostGotEaten()) pinky->move(deltaTime, 1, ghostsPositionsInMap, playerPosition,  playerDirection); ghostsPositionsInMap[1] = pinky->getCurrentPositionInMap();
+            if(!inky->didGhostGotEaten()) inky->move(deltaTime, 2, ghostsPositionsInMap, playerPosition, playerDirection); ghostsPositionsInMap[2] = inky->getCurrentPositionInMap();
+            if(!clyde->didGhostGotEaten()) clyde->move(deltaTime, 3, ghostsPositionsInMap, playerPosition); ghostsPositionsInMap[3] = clyde->getCurrentPositionInMap();
         }
 
         void changeGhostsState(GhostState state) {
             generalGhostState = state;
-			blinky->setGhostState(state);
-            pinky->setGhostState(state);
-            inky->setGhostState(state);
-            clyde->setGhostState(state);
+			if(!blinky->didGhostGotEaten()) blinky->setGhostState(state);
+            if(!pinky->didGhostGotEaten()) pinky->setGhostState(state);
+            if(!inky->didGhostGotEaten()) inky->setGhostState(state);
+            if(!clyde->didGhostGotEaten()) clyde->setGhostState(state);
 		}
 
         void changeGhostsSpeedModifier(float speedMod) {
-            blinky->setSpeedModifier(speedMod);
-            pinky->setSpeedModifier(speedMod);
-            inky->setSpeedModifier(speedMod);
-            clyde->setSpeedModifier(speedMod);
+            if(!blinky->didGhostGotEaten()) blinky->setSpeedModifier(speedMod);
+            if(!pinky->didGhostGotEaten()) pinky->setSpeedModifier(speedMod);
+            if(!inky->didGhostGotEaten()) inky->setSpeedModifier(speedMod);
+            if(!clyde->didGhostGotEaten()) clyde->setSpeedModifier(speedMod);
+        }
+
+        void resetAfterEatingPacman(int time) {
+            blinky->setGhostGotPacman(false);
+			pinky->setGhostGotPacman(false);
+			inky->setGhostGotPacman(false);
+			clyde->setGhostGotPacman(false);
+
+            blinky->ghostGotEatenBehaviour(time);
+            pinky->ghostGotEatenBehaviour(time);
+            inky->ghostGotEatenBehaviour(time);
+            clyde->ghostGotEatenBehaviour(time);
         }
 
         bool checkIfGhostsGotPacman() { return blinky->didGhostGotPacman() || pinky->didGhostGotPacman() || inky->didGhostGotPacman() || clyde->didGhostGotPacman(); }

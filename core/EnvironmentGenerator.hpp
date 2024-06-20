@@ -34,7 +34,6 @@ enum CellContent {
 };
 
 
-
 // Maze generator class creates the mesh of the maze, either by loading the maze as .txt or by generating one random;
 class MazeGenerator {
 
@@ -472,7 +471,6 @@ class PelletGenerator {
             }
         }
 };
-
 
 // Class that holds all meshes classes generators that "handly" generate vertices and indices;
 class EnvironmentGenerator {
