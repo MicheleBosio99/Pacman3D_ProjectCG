@@ -1,6 +1,6 @@
 ﻿
-#ifndef MAZE_GENERATOR_HPP
-#define MAZE_GENERATOR_HPP
+#ifndef GAME_ENV_GENERATOR_HPP
+#define GAME_ENV_GENERATOR_HPP
 
 #include <iostream>
 #include <fstream>
@@ -32,7 +32,6 @@ enum CellContent {
     PATH, // Cell is a path;
     GHOST
 };
-
 
 // Maze generator class creates the mesh of the maze, either by loading the maze as .txt or by generating one random;
 class MazeGenerator {
@@ -472,8 +471,8 @@ class PelletGenerator {
         }
 };
 
-// Class that holds all meshes classes generators that "handly" generate vertices and indices;
-class EnvironmentGenerator {
+// Class that holds all meshes classes generators that generate vertices and indices;
+class GameEnvGenerator {
 
     public:
 

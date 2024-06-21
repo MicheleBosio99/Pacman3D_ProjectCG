@@ -42,28 +42,41 @@ class ModelHandler {
 };
 
 
-class EnvironmentModelHandler : public ModelHandler {
+class GameModelHandler : public ModelHandler {
 
 	public:
 
-		EnvironmentModelHandler(glm::mat4 modelMatrix, std::string texturePath) : ModelHandler(modelMatrix, texturePath) { }
+		GameModelHandler(glm::mat4 modelMatrix, std::string texturePath) : ModelHandler(modelMatrix, texturePath) { }
 
         glm::mat4 getModelMatrix() override { return modelMatrix; }
 		
 };
 
 
-class GhostModelHandler : public ModelHandler {
+class GhostGameModelHandler : public ModelHandler {
 
     std::shared_ptr<Ghost> ghost;
 
 	public:
 
-		GhostModelHandler(std::shared_ptr<Ghost> ghost, glm::mat4 modelMatrix, std::string modelPath, std::string texturePath) : ghost(ghost), ModelHandler(modelMatrix, modelPath, texturePath) {
+		GhostGameModelHandler(std::shared_ptr<Ghost> ghost, glm::mat4 modelMatrix, std::string modelPath, std::string texturePath) : ghost(ghost), ModelHandler(modelMatrix, modelPath, texturePath) {
             ghost->setInitialModelMatrix(modelMatrix);
         }
 
         glm::mat4 getModelMatrix() override { return ghost->getModelMatrix(); }
+
+};
+
+
+class GhostMenuModelHandler : public ModelHandler {
+
+    glm::mat4* modelMatrix;
+
+    public:
+
+        GhostMenuModelHandler(glm::mat4* modelMatrix, std::string modelPath, std::string texturePath) : modelMatrix(modelMatrix), ModelHandler(*modelMatrix, modelPath, texturePath) { }
+
+        glm::mat4 getModelMatrix() override { return *modelMatrix; }
 
 };
 
@@ -80,6 +93,7 @@ class PelletModelHandler : public ModelHandler {
         glm::mat4 getModelMatrix() override { return modelMatrix; }
 
 };
+
 
 
 #endif

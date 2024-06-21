@@ -749,7 +749,7 @@
     <ClInclude Include="core\GhostsBehaviour.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\EnvironmentGenerator.hpp">
+    <ClInclude Include="core\GameEnvGenerator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\ControlHandler.hpp">
@@ -768,6 +768,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\TextHandler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\OverlayRenderer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\StartingMenuEnvGenerator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

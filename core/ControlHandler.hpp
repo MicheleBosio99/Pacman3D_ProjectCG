@@ -48,6 +48,19 @@ class ViewCameraControl {
             updateCameraVectors();
         }
 
+        void reInitializateAll(glm::vec3 startPosition, glm::vec3 startFront, glm::vec3 startUp, float startYaw, float startPitch, float movSpeed = 2.5f, float mouseSens = 0.08f) {
+            position = startPosition;
+            front = startFront;
+            worldUp = startUp;
+            yaw = startYaw;
+            pitch = startPitch;
+            movementSpeed = movSpeed;
+            mouseSensitivity = mouseSens;
+            fixedHeight = startPosition.y;
+
+            updateCameraVectors();
+        }
+
         // Used in the Starter.hpp to update the view matrix in the UBO;
         glm::mat4 getViewMatrix() { return glm::lookAt(position, position + front, up); }
 
@@ -83,6 +96,7 @@ class ViewCameraControl {
         }
 
         void setPosition(glm::vec3 newPosition) { position = newPosition; }
+        void setFront(glm::vec3 newFront) { front = newFront; }
 
         void pacmanGotEatenBehaviour(int time) {
             float s = movementSpeed;

@@ -63,11 +63,14 @@ class SoundManager {
         }
 
         // Play a sound in loop;
-        static void playSoundLooped(const std::string& name) {
+        static void playSoundLooped(const std::string& name, float volume = 1.0f, float speed = 1.0f) {
             checkInitialization();
 
             auto it = soundSources.find(name);
-            if (it != soundSources.end()) { auto sound = engine->play2D(it->second, true, false, true, false); if (sound) soundsPlaying[name] = sound; }
+            if (it != soundSources.end()) {
+                auto sound = engine->play2D(it->second, true, false, true, false);
+                if (sound) { soundsPlaying[name] = sound; sound->setVolume(volume); sound->setPlaybackSpeed(speed); }
+            }
             else { std::cerr << "Error: Sound not found: " << name << std::endl; }
         }
 

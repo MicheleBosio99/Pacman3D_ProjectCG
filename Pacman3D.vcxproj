@@ -146,9 +146,11 @@
   <ItemGroup>
     <ClInclude Include="core\ControlHandler.hpp" />
     <ClInclude Include="core\GhostsBehaviour.hpp" />
-    <ClInclude Include="core\EnvironmentGenerator.hpp" />
+    <ClInclude Include="core\GameEnvGenerator.hpp" />
     <ClInclude Include="core\ModelHandler.hpp" />
+    <ClInclude Include="core\OverlayRenderer.hpp" />
     <ClInclude Include="core\SoundManager.hpp" />
+    <ClInclude Include="core\StartingMenuEnvGenerator.hpp" />
     <ClInclude Include="core\TextHandler.hpp" />
     <ClInclude Include="headers\glm\common.hpp" />
     <ClInclude Include="headers\glm\detail\compute_common.hpp" />

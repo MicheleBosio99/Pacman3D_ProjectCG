@@ -151,7 +151,8 @@ static std::vector<char> readFile(const std::string& filename) {
 // MY CODE _____________________________________________________________________________________________________________________________________________________________________________________________
 
 #include "../core/ControlHandler.hpp"
-#include "../core/EnvironmentGenerator.hpp"
+#include "../core/GameEnvGenerator.hpp"
+#include "../core/StartingMenuEnvGenerator.hpp"
 #include "../core/GhostsBehaviour.hpp"
 #include "../core/ModelHandler.hpp"
 #include "../core/SoundManager.hpp"
@@ -160,7 +161,7 @@ static std::vector<char> readFile(const std::string& filename) {
 #undef max
 #undef min
 
-glm::vec3 pacmanStartingPosition = glm::vec3(8.5f, pacmanHeight, 0.0f); // Set default Pacman starting position in world;
+glm::vec3 pacmanStartingPosition = glm::vec3(8.8f, pacmanHeight, 0.0f); // Set default Pacman starting position in world;
 
 ViewCameraControl viewCamera = ViewCameraControl(pacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f), 180.0f, -55.0f, 5.0f); // Controller that handles view camera. Gets position, up, yaw, pitch and speed;
 
@@ -173,6 +174,10 @@ bool isMousePressed = false; // Hold a boolean to know if the left mouse button 
 
 bool closeApp = false; // Boolean determining wheter the app will be closed the next frame or not;
 
+bool appInStartedScreen = false;
+bool appInGameScreen = false;
+bool appInGameOverScreen = false;
+
 
 // Process the input received from keyboard using ViewCameraControl class;
 void processInput(GLFWwindow* window) {
@@ -180,8 +185,10 @@ void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { viewCamera.processKeyboardInput(BACKWARD, deltaTime); }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { viewCamera.processKeyboardInput(LEFT, deltaTime); }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { viewCamera.processKeyboardInput(RIGHT, deltaTime); }
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) { closeApp = true; } // If escape button is clicked exit the app;
 }
+
+void closeAppOnEscPress(GLFWwindow* window) { if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) { closeApp = true; } } // If escape button is clicked exit the app;
+void checkSpaceBarGotPressedPress(GLFWwindow* window) { if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) { appInStartedScreen = false; } } // If escape button is clicked exit the app;
 
 // Mouse callback setted to handle mouse movements;
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -229,22 +236,14 @@ class Pacman3D {
 
     public:
 
-        void run2() {
-            initWindow();
-            initVulkan(); // But without the part that loads the models;
-            showStartingMenu();
-            startPacmanGame();
-            showGameOver();
-            cleanup();
-        }
-
         void run() {
             initWindow();
-            otherInitializations();
-            loadModelHandlers();
+            glfwInitialization();
+            soundManagerInitialization();
             initVulkan();
-            startGameCoroutines();
-            mainGameLoop();
+
+            gameLoop(); // Start showing the game;
+
             cleanup();
         }
 
@@ -274,6 +273,8 @@ class Pacman3D {
         std::vector<VkSemaphore> imageAvailableSemaphores; // Semaphore to signal image is available to pick in swapchain;
         std::vector<VkSemaphore> renderFinishedSemaphores; // Semaphore to signal that rendering has finished and presentation can happen;
         std::vector<VkFence> inFlightFences; // Fence to make sure only one frame is rendering at a time;
+        std::vector<VkFence> imagesInFlight;
+
         uint32_t currentFrame = 0; // Hold current frame;
 
         bool framebufferResized = false; // Has the window been resized?;
@@ -289,9 +290,13 @@ class Pacman3D {
         VkDeviceMemory colorImageMemory;
         VkImageView colorImageView;
 
-        // Contains ModelHandlers to handle all model needed to be loaded;
-        std::vector<std::shared_ptr<ModelHandler>> modelHandlers;
-        EnvironmentGenerator envGenerator; // Environment generator;
+        // GAME LOGIC VARIABLES; ______________________________________________________________________________________________________________________________________________________________
+        
+        std::vector<std::shared_ptr<ModelHandler>> modelHandlers; // Contains ModelHandlers to handle all model needed to be loaded;
+
+        GameEnvGenerator envGenerator; // Environment generator;
+        StartingMenuEnvGenerator startingMenuEnvGenerator; // Starting menu environment generator;
+
         GhostCollection ghosts = GhostCollection(envGenerator.mazeGenerator.getMaze()); // Enemy ghosts holder;
 
         std::vector<std::vector<std::tuple<std::shared_ptr<ModelHandler>, bool>>> pelletsInMaze; // Hold pellets in maze and their status;
@@ -304,6 +309,133 @@ class Pacman3D {
         int livesLeft = 100; // Pacman lives;
 
 
+        // GAME LIFECYCLE LOGIC; ______________________________________________________________________________________________________________________________________________________________
+
+        enum class GameState { STARTING_MENU, PACMAN_GAME, GAME_OVER };
+
+        GameState currentGameState = GameState::STARTING_MENU;
+
+        // Main game loop, contains starting menu screen, game screen and game over screen. When game over then back to the menu;
+        void gameLoop() {
+            appInStartedScreen = true;
+
+            while (!glfwWindowShouldClose(window) && !closeApp) {
+                showStartingMenu();
+                std::cout << "Starting Menu closed" << std::endl;
+                startPacmanGame();
+                std::cout << "Game over" << std::endl;
+                showGameOver();
+            }
+            vkDeviceWaitIdle(device);
+        }
+
+
+        
+
+        // Show the starting menu;
+        void showStartingMenu() {
+            appInStartedScreen = true;
+
+            viewCamera.reInitializateAll(
+                glm::vec3(8.5f, pacmanHeight, 0.0f),
+                glm::vec3(-1.0f, 0.0f, 0.0f),
+                glm::vec3(0.0f, 1.0f, 0.0f),
+                180.0f,
+                0.0f,
+                0.0f,
+                0.0f
+            );
+
+            loadStartingMenuModelHandlers();
+            generateModels();
+            startStartingMenuCoroutines();
+
+            while (!glfwWindowShouldClose(window) && !closeApp && appInStartedScreen) {
+
+                float currentFrame = glfwGetTime(); deltaTime = currentFrame - lastFrame; lastFrame = currentFrame;
+
+                moveGhostsInStartingMenu(deltaTime);
+
+                checkSpaceBarGotPressedPress(window);
+                closeAppOnEscPress(window);
+                drawFrame();
+                glfwPollEvents();
+            }
+
+            stopStartingMenuCoroutines();
+            appInStartedScreen = false;
+        }
+
+
+        // Run the actual game loop;
+        void startPacmanGame() {
+
+            appInGameScreen = true;
+            viewCamera.reInitializateAll(
+                pacmanStartingPosition,
+                glm::vec3(0.0f, 1.0f, 0.0f),
+                glm::vec3(0.0f, 1.0f, 0.0f),
+                180.0f,
+                0.0f,
+                5.0f
+            );
+
+            loadGameModelHandlers();
+            generateModels();
+            startGameCoroutines();
+
+            // mainGameLoop();
+            while (!glfwWindowShouldClose(window) && !closeApp && appInGameScreen) {
+
+                float currentFrame = glfwGetTime();
+                deltaTime = currentFrame - lastFrame;
+                lastFrame = currentFrame;
+
+                //processInput(window);  //
+                movePlayerAndCheckCollisionsWithWalls(); // Move player and check for collisions;
+                checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
+
+                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
+                checkForEndGame();
+
+                if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); }
+                else if (pacmanDefeated and livesLeft == 0) { handleFinishedGame(); }
+
+                closeAppOnEscPress(window);
+                drawFrame();
+                glfwPollEvents();
+            }
+
+            appInGameScreen = false;
+        }
+
+
+        // Game is over, show game over screen;
+        void showGameOver() {
+
+            appInGameOverScreen = true;
+
+            // load interface to display game over screen;
+
+            while (!glfwWindowShouldClose(window) && !closeApp && appInGameOverScreen) {
+
+
+                // std::cout << "GameOverMenu: " << closeApp << std::endl;
+                // Play game;
+
+                closeAppOnEscPress(window);
+                drawFrame();
+                glfwPollEvents();
+            }
+
+            appInGameOverScreen = false;
+
+        }
+
+        // ____________________________________________________________________________________________________________________________________________________________________________________________
+
+
+        // Initialize the window;
         void initWindow() {
             glfwInit();
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Tell GLFW that this is not OpenGL;
@@ -321,6 +453,7 @@ class Pacman3D {
             glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         } 
 
+        // Initialize the Vulkan instance;
         void initVulkan() {
             createInstance(); // Create a Vulkan instance;
             // setupDebugMessenger(); <- to understand why doesnt work :C;
@@ -336,9 +469,14 @@ class Pacman3D {
             createColorResources();
             createDepthResources();
             createFramebuffers(); // Create the framebuffers;
+            createCommandBuffers(); // Create command buffer;
+            createSyncObjects();
+        }
+
+        // Generate the models info for the game;
+        void generateModels() {
 
             createDescriptorPool(); // Create descriptor pool;
-
             for (const auto& handler : modelHandlers) {
 
                 createTextureImage(*handler); // LOAD IMAGES;
@@ -352,22 +490,18 @@ class Pacman3D {
                 createUniformBuffers(*handler); // Create uniform buffer;
                 createDescriptorSets(*handler); // Create descriptor set;
             }
-
-            createCommandBuffers(); // Create command buffer;
-            createSyncObjects();
         }
 
         // Initialize other things such as callbacks;
-        void otherInitializations() {
+        void glfwInitialization() {
             // glfwSetCursorPos(window, WIDTH / 2.0, HEIGHT / 2.0); // Put cursor at the center of the window;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             glfwSetCursorPosCallback(window, mouse_callback); // Set the callback to handle the mouse updates;
             // glfwSetMouseButtonCallback(window, mouse_button_callback); // Set the callback for the mouse only if the left button gets clicked;
-
-            initializeSounds();
         }
 
-        void initializeSounds() {
+        // Initialize the sounds;
+        void soundManagerInitialization() {
             if (!SoundManager::initSoundManager()) { return; }
 
             const std::string initialMenuBGMusic = "initialMenuBGMusic";
@@ -399,57 +533,175 @@ class Pacman3D {
 			}
         }
 
-        // Create the model handlers for needed models. Temporary, will be done with a JSON later;
-        void loadModelHandlers() {
 
-            auto labirinthHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/BlackBrickedWall.png");
+        // STARTING MENU LOGIC; ______________________________________________________________________________________________________________________________________________________________________
+
+        glm::mat4 blinkyModelMatrix;
+        glm::mat4 pinkyModelMatrix;
+        glm::mat4 clydeModelMatrix;
+
+        // Load the models used in the starting menu;
+        void loadStartingMenuModelHandlers() {
+
+            modelHandlers.clear();
+
+            auto titleHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f)), "textures/starting_menu/PacmanLogo5.png");
+            titleHandler->vertices = startingMenuEnvGenerator.titleGenerator.getBillboardVertices();
+            titleHandler->indices = startingMenuEnvGenerator.titleGenerator.getBillboardIndices();
+
+            auto spacebarHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f)), "textures/starting_menu/PressSpaceBarText.png");
+            spacebarHandler->vertices = startingMenuEnvGenerator.spacebarGenerator.getBillboardVertices();
+            spacebarHandler->indices = startingMenuEnvGenerator.spacebarGenerator.getBillboardIndices();
+
+
+            blinkyModelMatrix = generateModelMatrix(glm::vec3(-8.0f, -18.0f, 3.0f), 180.0f, 0.0f, 0.0f, 0.1f);
+            pinkyModelMatrix = generateModelMatrix(glm::vec3(-4.0f, -3.0f, 10.0f), -90.0f, 0.0f, 0.0f, 0.18f);
+            clydeModelMatrix = generateModelMatrix(glm::vec3(2.0f, 2.0f, -4.0f), 90.0f, 0.0f, 0.0f, 0.25f);
+
+            auto blinkyHandler = std::make_shared<GhostMenuModelHandler>(
+				&blinkyModelMatrix,
+				"models/ghostModel.obj",
+				"textures/ghosts/BlinkyTex.png"
+			);
+
+            auto pinkyHandler = std::make_shared<GhostMenuModelHandler>(
+                &pinkyModelMatrix,
+                "models/ghostModel.obj",
+                "textures/ghosts/PinkyTex.png"
+            );
+
+            auto clydeHandler = std::make_shared<GhostMenuModelHandler>(
+                &clydeModelMatrix,
+                "models/ghostModel.obj",
+                "textures/ghosts/ClydeTex.png"
+            );
+
+			modelHandlers.push_back(titleHandler);
+            modelHandlers.push_back(spacebarHandler);
+
+            modelHandlers.push_back(blinkyHandler);
+            modelHandlers.push_back(pinkyHandler);
+            modelHandlers.push_back(clydeHandler);
+        }
+
+        bool moveGhosts = false;
+
+        // Start the coroutines for the starting menu;
+        void startStartingMenuCoroutines() {
+            SoundManager::playSoundLooped("pacman_intro", 0.6f);
+            moveGhosts = true;
+        }
+
+        void stopStartingMenuCoroutines() {
+
+            if(SoundManager::isSoundPlaying("pacman_intro")) { SoundManager::stopSound("pacman_intro"); }
+            moveGhosts = false;
+
+        }
+
+        float blinkySpeed = 4.0f;
+        float pinkySpeed = 4.0f;
+        float clydeSpeed = 4.0f;
+
+        // float zLimitBlinky = 10.0f;
+        float zLimitPinky = 4.0f;
+        float zLimitClyde = 12.0f;
+
+        // Move the ghosts in the starting menu;
+        void moveGhostsInStartingMenu(float deltaTime) {
+            if (!moveGhosts) { return; }
+
+            // Current time since the start of the program
+            float currentTime = glfwGetTime();
+
+            // Calculate new Y positions based on sine wave for smooth oscillation
+            float blinkyYOffset = sin(currentTime * blinkySpeed + 1.0f) * 0.6f - 4.0f;
+            float pinkyYOffset = sin(currentTime * pinkySpeed * 0.4f) * 1.6f + 2.0f;
+            float clydeYOffset = sin(currentTime * clydeSpeed * 1.2f) * 0.4f;
+
+            // Calculate rotation angles for each ghost
+            float pinkyRotationAngle = currentTime * pinkySpeed * 1.2f;
+            float clydeRotationAngle = currentTime * clydeSpeed;
+
+            // Blinky faces the camera
+            glm::vec3 blinkyPosition = glm::vec3(blinkyModelMatrix[3]);
+            blinkyPosition.y = blinkyYOffset;
+            glm::mat4 blinkyLookAt = glm::rotate(glm::inverse(glm::lookAt(viewCamera.position, blinkyPosition, glm::vec3(0.0f, 1.0f, 0.0f))), glm::radians(85.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            // Extract the rotation part from the lookAt matrix
+            glm::mat4 blinkyRotation = glm::mat4(glm::mat3(blinkyLookAt));
+            blinkyModelMatrix = glm::translate(glm::mat4(1.0f), blinkyPosition) * blinkyRotation;
+
+            glm::vec3 pinkyPosition = glm::vec3(pinkyModelMatrix[3]);
+            pinkyPosition.y = pinkyYOffset;
+            glm::mat4 pinkyRotation = glm::rotate(glm::mat4(1.0f), pinkyRotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+            pinkyModelMatrix = glm::translate(glm::mat4(1.0f), pinkyPosition) * pinkyRotation;
+
+            glm::vec3 clydePosition = glm::vec3(clydeModelMatrix[3]);
+            clydePosition.y = clydeYOffset;
+            glm::mat4 clydeRotation = glm::rotate(glm::mat4(1.0f), clydeRotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+            clydeModelMatrix = glm::translate(glm::mat4(1.0f), clydePosition) * clydeRotation;
+        }
+
+        // ____________________________________________________________________________________________________________________________________________________________________________________________
+
+
+
+
+
+
+        // Create the model handlers for needed models. Temporary, will be done with a JSON later;
+        void loadGameModelHandlers() {
+
+            modelHandlers.clear();
+
+            auto labirinthHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/BlackBrickedWall.png");
             labirinthHandler->vertices = envGenerator.mazeGenerator.getMazeVertices();
             labirinthHandler->indices = envGenerator.mazeGenerator.getMazeIndices();
 
-            auto floorHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/MushyFloor.png");
+            auto floorHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/MushyFloor.png");
             floorHandler->vertices = envGenerator.floorGenerator.getFloorVertices();
             floorHandler->indices = envGenerator.floorGenerator.getFloorIndices();
 
-            auto skyHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/Sky.png");
+            auto skyHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/Sky.png");
             skyHandler->vertices = envGenerator.skyGenerator.geSkyVertices();
             skyHandler->indices = envGenerator.skyGenerator.getSkyIndices();
 
-            auto leftPortalHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, -14.0f)), "textures/test/Portal.png");
+            auto leftPortalHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, -14.0f)), "textures/test/Portal.png");
             leftPortalHandler->vertices = envGenerator.teleporterGenerator.getTeleporterVertices();
             leftPortalHandler->indices = envGenerator.teleporterGenerator.getTeleporterIndices();
 
-            auto rightPortalHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 14.0f)), "textures/test/Portal.png");
+            auto rightPortalHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 14.0f)), "textures/test/Portal.png");
             rightPortalHandler->vertices = envGenerator.teleporterGenerator.getTeleporterVertices();
             rightPortalHandler->indices = envGenerator.teleporterGenerator.getTeleporterIndices();
 
-            auto gateHandler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 0.0f, 0.0f)), "textures/test/Gate.png");
+            auto gateHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 0.0f, 0.0f)), "textures/test/Gate.png");
             gateHandler->vertices = envGenerator.gateGenerator.getGateVertices();
             gateHandler->indices = envGenerator.gateGenerator.getGateIndices();
 
 
 
-            auto blinkyHandler = std::make_shared<GhostModelHandler>(
+            auto blinkyHandler = std::make_shared<GhostGameModelHandler>(
                 ghosts.blinky,
                 generateModelMatrix(ghosts.blinky->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/BlinkyTex.png"
             );
 
-            auto pinkyHandler = std::make_shared<GhostModelHandler>(
+            auto pinkyHandler = std::make_shared<GhostGameModelHandler>(
                 ghosts.pinky,
                 generateModelMatrix(ghosts.pinky->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/PinkyTex.png"
             );
 
-            auto inkyHandler = std::make_shared<GhostModelHandler>(
+            auto inkyHandler = std::make_shared<GhostGameModelHandler>(
                 ghosts.inky,
                 generateModelMatrix(ghosts.inky->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
                 "textures/ghosts/InkyTex.png"
             );
 
-            auto clydeHandler = std::make_shared<GhostModelHandler>(
+            auto clydeHandler = std::make_shared<GhostGameModelHandler>(
                 ghosts.clyde,
                 generateModelMatrix(ghosts.clyde->getCurrentPosition(), 0.0f, 0.0f, 0.0f, ghostsScale),
                 "models/ghostModel.obj",
@@ -478,9 +730,9 @@ class Pacman3D {
 			glm::mat4 model = glm::mat4(1.0f);
 
 			model = glm::translate(model, position);
-			// model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
-			// model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
-			// model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f));
+			model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f));
 			model = glm::scale(model, glm::vec3(scale));
 
 			return model;
@@ -744,81 +996,7 @@ class Pacman3D {
         }
 
 
-        // _____________________________________________________________________________________________________________________________________________________________________________________________________
-
-
-        
-
-        
-
-
-
-        // _____________________________________________________________________________________________________________________________________________________________________________________________________
-
-        // GAME LIFECYCLE LOGIC;
-
-        bool gameIsStartedScreen = false;
-        bool gameHasEndedScreen = false;
-        bool closeGameOverScreen = false;
-
-        // Show the starting menu interface;
-        void showStartingMenu() {
-
-            // Load models to display initial menu interface;
-
-			while (!glfwWindowShouldClose(window) && !gameIsStartedScreen) {
-
-                // Show starting menu until game is started;
-
-				glfwPollEvents();
-			}
-		}
-
-
-        // Run the actual game loop;
-        void startPacmanGame() {
-			
-            // load models used in game;
-
-            // mainGameLoop();
-            while (!glfwWindowShouldClose(window) && !gameHasEndedScreen) {
-
-                // Play game;
-
-                glfwPollEvents();
-            }
-		}
-
-
-        // Game is over, show game over screen;
-        void showGameOver() {
-
-            // load interface to display game over screen;
-
-            while (!glfwWindowShouldClose(window) && !closeGameOverScreen) {
-
-                // Play game;
-
-                glfwPollEvents();
-            }
-
-        }
-
-
-        // Main game loop, contains starting menu screen, game screen and game over screen. When game over then back to the menu;
-        void mainLoop() {
-            while (!glfwWindowShouldClose(window)) {
-                showStartingMenu();
-                startPacmanGame();
-                showGameOver();
-            }
-        }
-
-
-
-       // _____________________________________________________________________________________________________________________________________________________________________________________________________
-
-
+        // Cleanup all vulkan and non resources;
         void cleanup() {
             vkDestroyImageView(device, colorImageView, nullptr);
             vkDestroyImage(device, colorImage, nullptr);
@@ -1162,9 +1340,7 @@ class Pacman3D {
             createInfo.clipped = VK_TRUE;
             createInfo.oldSwapchain = VK_NULL_HANDLE; // Will change later;
 
-            if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create swap chain!");
-            }
+            if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) { throw std::runtime_error("failed to create swap chain!"); }
 
             vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
             swapChainImages.resize(imageCount);
@@ -1232,6 +1408,7 @@ class Pacman3D {
 
         // Create the graphics pipeline;
         void createGraphicsPipeline() {
+
             // Load the shaders;
             auto vertShaderCode = readFile("shaders/ShaderVert.spv");
             auto fragShaderCode = readFile("shaders/ShaderFrag.spv");
@@ -1394,7 +1571,6 @@ class Pacman3D {
             pipelineInfo.pViewportState = &viewportState;
             pipelineInfo.pRasterizationState = &rasterizer;
             pipelineInfo.pMultisampleState = &multisampling;
-            pipelineInfo.pDepthStencilState = nullptr; // Optional
             pipelineInfo.pColorBlendState = &colorBlending;
             pipelineInfo.pDynamicState = &dynamicState;
             pipelineInfo.pDepthStencilState = &depthStencil;
@@ -1628,9 +1804,6 @@ class Pacman3D {
             scissor.extent = swapChainExtent;
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-            // ISSUE DRAWING OF TRIANGLE;
-            vkCmdDraw(commandBuffer, 3, 1, 0, 0); // VertexCount, InstanceCount, FirstVertex, FirstInstance; TODO - Is it right for multiple models????
-
             vkCmdEndRenderPass(commandBuffer);
             if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) { throw std::runtime_error("failed to record command buffer!"); }
         }
@@ -1653,11 +1826,19 @@ class Pacman3D {
             if (result == VK_ERROR_OUT_OF_DATE_KHR) { recreateSwapChain(); return; }
             else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) { throw std::runtime_error("failed to acquire swap chain image!"); }
 
+            // Ensure that the previous frame using this image (if any) has finished executing
+            if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) { vkWaitForFences(device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX); }
+            imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
             for (const auto& handler : modelHandlers) { updateUniformBuffer(*handler, currentFrame); } // Update uniform buffer;
+            
 
             // Only reset the fence if we are submitting work
             vkResetFences(device, 1, &inFlightFences[currentFrame]);
             vkResetCommandBuffer(commandBuffers[currentFrame], 0); // Reset the command buffer for recording new commands;
+
+
+            // RENDER WORLD;
             
             recordCommandBuffer(commandBuffers[currentFrame], imageIndex); // Record commandsBuffer once for each model. This also calls the Draw function;
 
@@ -1678,6 +1859,10 @@ class Pacman3D {
             submitInfo.pSignalSemaphores = signalSemaphores;
 
             if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) { throw std::runtime_error("failed to submit draw command buffer!"); }
+
+            // END RENDER WORLD;
+
+
 
             // Present the image to the swap chain for display;
             VkPresentInfoKHR presentInfo{};
@@ -1703,6 +1888,7 @@ class Pacman3D {
             imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
             renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
             inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+            imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
 
             VkSemaphoreCreateInfo semaphoreInfo{};
             semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -2447,4 +2633,9 @@ class Pacman3D {
 
 
 
+        
+        
 };
+
+
+
