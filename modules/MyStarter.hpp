@@ -35,10 +35,6 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
-
 
 const uint32_t WIDTH = 1600;
 const uint32_t HEIGHT = 1080;
@@ -159,6 +155,8 @@ static std::vector<char> readFile(const std::string& filename) {
 #include "../core/GhostsBehaviour.hpp"
 #include "../core/ModelHandler.hpp"
 #include "../core/SoundManager.hpp"
+#include "../core/TextHandler.hpp"
+
 #undef max
 #undef min
 
@@ -579,10 +577,10 @@ class Pacman3D {
         // Update player position for sound;
         void updatePlayerPositionForSound() {
             SoundManager::engine->setListenerPosition(
-                { viewCamera.position.x,viewCamera.position.y, viewCamera.position.z },
-                { viewCamera.front.x,viewCamera.front.y, viewCamera.front.z },
+                { viewCamera.position.x, viewCamera.position.y, viewCamera.position.z },
+                { -viewCamera.front.x, -viewCamera.front.y, -viewCamera.front.z },
                 { 0.0f, 0.0f, 0.0f },
-                { viewCamera.up.x,viewCamera.up.y, viewCamera.up.z }
+                { viewCamera.up.x, viewCamera.up.y, viewCamera.up.z }
             );
         }
 
@@ -749,7 +747,7 @@ class Pacman3D {
         // _____________________________________________________________________________________________________________________________________________________________________________________________________
 
 
-        // IMGUI SETUP;
+        
 
         
 

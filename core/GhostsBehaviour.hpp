@@ -106,7 +106,7 @@ class Ghost {
         // Compute all needed to move the model of the ghost in the right direction for reaching pacman with its behaviour specifics;
         void move(float deltaTime, int index, std::vector<glm::ivec2> ghostsPositionsInMap, glm::vec3 pacmanPosition, glm::vec3 pacmanDirection = glm::vec3(0.0f)) {
 
-            // if (soundName == "") { initializeGhostSirenSounds(); }
+            if (soundName == "") { initializeGhostSirenSounds(); }
 
             if (deltaTime > 0.5f) { return; }
 
@@ -170,14 +170,13 @@ class Ghost {
             irrklang::vec3df irrKlangPosition(currentPosition.x, currentPosition.y, currentPosition.z);
 
             // Play/Update the sound;
-            /*if (!SoundManager::isSoundPlaying(soundName)) {
-                SoundManager::soundsPlaying[soundName]->setMinDistance(100.0f);
+            if (!SoundManager::isSoundPlaying(soundName)) {
                 SoundManager::soundsPlaying[soundName]->setPosition(irrKlangPosition);
                 SoundManager::soundsPlaying[soundName]->setIsPaused(false);
             }
             else {
                 SoundManager::updateSoundPosition(soundName, irrKlangPosition);
-            }*/
+            }
         }
 
         // Behaviour when the ghost gets eaten;
@@ -220,9 +219,11 @@ class Ghost {
             irrklang::ISound* ghostSirenSound = SoundManager::playSound3D("pacman_ghost-siren", irrKlangPos, true, true);
             SoundManager::soundsPlaying[soundName] = ghostSirenSound;
 
-            ghostSirenSound->setMinDistance(20.0f);
+            ghostSirenSound->setMinDistance(4.0f);
+            ghostSirenSound->setMaxDistance(20.0f);
             ghostSirenSound->setPosition(irrKlangPos);
             ghostSirenSound->setIsPaused(false);
+            ghostSirenSound->setVolume(1.0f);
         }
 
         // Determine equivalence among floats;

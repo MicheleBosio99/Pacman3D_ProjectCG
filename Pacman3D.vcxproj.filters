@@ -21,27 +21,6 @@
     <ClCompile Include="Pacman3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\imgui-master\imgui.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\imgui-master\imgui_demo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\imgui-master\imgui_draw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\imgui-master\imgui_tables.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\imgui-master\imgui_widgets.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\imgui-master\backends\imgui_impl_glfw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\imgui-master\backends\imgui_impl_vulkan.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\sdefl.h">
@@ -785,13 +764,10 @@
     <ClInclude Include="core\SoundManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\imgui-master\imgui.h">
+    <ClInclude Include="modules\TextMaker.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\imgui-master\backends\imgui_impl_glfw.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\imgui-master\backends\imgui_impl_vulkan.h">
+    <ClInclude Include="core\TextHandler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

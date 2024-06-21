@@ -78,35 +78,35 @@
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>C:\Users\bosio\All_Files\Computer Graphics\imgui-master\backends;C:\Users\bosio\All_Files\Computer Graphics\imgui-master;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\include;C:\Users\bosio\All_Files\Computer Graphics\Pacman3D_ProjectCG\headers;C:\Users\bosio\All_Files\Computer Graphics\GLFW\include;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\bosio\All_Files\Computer Graphics\freetype-2.13.2\include;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\include;C:\Users\bosio\All_Files\Computer Graphics\Pacman3D_ProjectCG\headers;C:\Users\bosio\All_Files\Computer Graphics\GLFW\include;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\bosio\All_Files\Computer Graphics\GLFW\lib-vc2022;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;irrKlang.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\bosio\All_Files\Computer Graphics\freetype-2.13.2\build\Release;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\bosio\All_Files\Computer Graphics\GLFW\lib-vc2022;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;irrKlang.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>C:\Users\bosio\All_Files\Computer Graphics\imgui-master\backends;C:\Users\bosio\All_Files\Computer Graphics\imgui-master;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\include;C:\Users\bosio\All_Files\Computer Graphics\Pacman3D_ProjectCG\headers;C:\Users\bosio\All_Files\Computer Graphics\GLFW\include;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\bosio\All_Files\Computer Graphics\freetype-2.13.2\include;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\include;C:\Users\bosio\All_Files\Computer Graphics\Pacman3D_ProjectCG\headers;C:\Users\bosio\All_Files\Computer Graphics\GLFW\include;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\bosio\All_Files\Computer Graphics\GLFW\lib-vc2022;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;irrKlang.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\bosio\All_Files\Computer Graphics\freetype-2.13.2\build\Release;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\bosio\All_Files\Computer Graphics\GLFW\lib-vc2022;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;irrKlang.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>C:\Users\bosio\All_Files\Computer Graphics\imgui-master\backends;C:\Users\bosio\All_Files\Computer Graphics\imgui-master;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\include;C:\Users\bosio\All_Files\Computer Graphics\Pacman3D_ProjectCG\headers;C:\Users\bosio\All_Files\Computer Graphics\GLFW\include;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\bosio\All_Files\Computer Graphics\freetype-2.13.2\include;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\include;C:\Users\bosio\All_Files\Computer Graphics\Pacman3D_ProjectCG\headers;C:\Users\bosio\All_Files\Computer Graphics\GLFW\include;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -114,15 +114,15 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\bosio\All_Files\Computer Graphics\GLFW\lib-vc2022;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;irrKlang.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\bosio\All_Files\Computer Graphics\freetype-2.13.2\build\Release;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\bosio\All_Files\Computer Graphics\GLFW\lib-vc2022;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;irrKlang.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>C:\Users\bosio\All_Files\Computer Graphics\imgui-master\backends;C:\Users\bosio\All_Files\Computer Graphics\imgui-master;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\include;C:\Users\bosio\All_Files\Computer Graphics\Pacman3D_ProjectCG\headers;C:\Users\bosio\All_Files\Computer Graphics\GLFW\include;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\bosio\All_Files\Computer Graphics\freetype-2.13.2\include;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\include;C:\Users\bosio\All_Files\Computer Graphics\Pacman3D_ProjectCG\headers;C:\Users\bosio\All_Files\Computer Graphics\GLFW\include;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -130,18 +130,11 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\bosio\All_Files\Computer Graphics\GLFW\lib-vc2022;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;irrKlang.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\bosio\All_Files\Computer Graphics\freetype-2.13.2\build\Release;C:\Users\bosio\All_Files\Computer Graphics\irrKlang-64bit-1.6.0\irrKlang-64bit-1.6.0\lib\Winx64-visualStudio;C:\Users\bosio\All_Files\Computer Graphics\GLFW\lib-vc2022;C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;irrKlang.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\imgui-master\backends\imgui_impl_glfw.cpp" />
-    <ClCompile Include="..\imgui-master\backends\imgui_impl_vulkan.cpp" />
-    <ClCompile Include="..\imgui-master\imgui.cpp" />
-    <ClCompile Include="..\imgui-master\imgui_demo.cpp" />
-    <ClCompile Include="..\imgui-master\imgui_draw.cpp" />
-    <ClCompile Include="..\imgui-master\imgui_tables.cpp" />
-    <ClCompile Include="..\imgui-master\imgui_widgets.cpp" />
     <ClCompile Include="headers\glm\detail\glm.cpp" />
     <ClCompile Include="Pacman3D.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
@@ -151,14 +144,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\imgui-master\backends\imgui_impl_glfw.h" />
-    <ClInclude Include="..\imgui-master\backends\imgui_impl_vulkan.h" />
-    <ClInclude Include="..\imgui-master\imgui.h" />
     <ClInclude Include="core\ControlHandler.hpp" />
     <ClInclude Include="core\GhostsBehaviour.hpp" />
     <ClInclude Include="core\EnvironmentGenerator.hpp" />
     <ClInclude Include="core\ModelHandler.hpp" />
     <ClInclude Include="core\SoundManager.hpp" />
+    <ClInclude Include="core\TextHandler.hpp" />
     <ClInclude Include="headers\glm\common.hpp" />
     <ClInclude Include="headers\glm\detail\compute_common.hpp" />
     <ClInclude Include="headers\glm\detail\compute_vector_relational.hpp" />
@@ -401,6 +392,7 @@
     <ClInclude Include="headers\tiny_gltf.h" />
     <ClInclude Include="headers\tiny_obj_loader.h" />
     <ClInclude Include="modules\MyStarter.hpp" />
+    <ClInclude Include="modules\TextMaker.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="headers\glm\detail\func_common.inl" />
