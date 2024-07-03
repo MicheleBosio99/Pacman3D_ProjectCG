@@ -220,9 +220,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 
 
-
-
-
 // _____________________________________________________________________________________________________________________________________________________________________________________________________
 
 // If applicaiton in debug mode then activate validation layers;
@@ -291,8 +288,6 @@ class Pacman3D {
         VkImageView colorImageView;
 
         // GAME LOGIC VARIABLES; ______________________________________________________________________________________________________________________________________________________________
-        
-        std::vector<std::shared_ptr<ModelHandler>> modelHandlers; // Contains ModelHandlers to handle all model needed to be loaded;
 
         GameEnvGenerator envGenerator; // Environment generator;
         StartingMenuEnvGenerator startingMenuEnvGenerator; // Starting menu environment generator;
@@ -319,6 +314,8 @@ class Pacman3D {
         void gameLoop() {
             appInStartedScreen = true;
 
+            loadAllModels();
+
             while (!glfwWindowShouldClose(window) && !closeApp) {
                 showStartingMenu();
                 std::cout << "Starting Menu closed" << std::endl;
@@ -329,8 +326,20 @@ class Pacman3D {
             vkDeviceWaitIdle(device);
         }
 
+        std::vector<std::shared_ptr<ModelHandler>> modelHandlers; // Hold the model handlers used in the current scene;
+        std::vector<std::shared_ptr<ModelHandler>> startingMenuModelHandlers; // Hold all model handlers for the starting menu;
+        std::vector<std::shared_ptr<ModelHandler>> gameModelHandlers; // Hold all model handlers for the game;
+        std::vector<std::shared_ptr<ModelHandler>> gameOverModelHandlers; // Hold all model handlers for the game over screen;
 
+        // Used to load all models needed for the game since they are not many. If needed make this run in parallel;
+        void loadAllModels() {
+            loadStartingMenuModelHandlers(); generateModels(startingMenuModelHandlers);
+            loadGameModelHandlers(); generateModels(gameModelHandlers);
+            // loadGameOverModelHandlers(); generateModels(gameOverModelHandlers);
+        }
         
+
+        #include <chrono> // Add this line for the sleep function
 
         // Show the starting menu;
         void showStartingMenu() {
@@ -346,8 +355,7 @@ class Pacman3D {
                 0.0f
             );
 
-            loadStartingMenuModelHandlers();
-            generateModels();
+            modelHandlers = startingMenuModelHandlers;
             startStartingMenuCoroutines();
 
             while (!glfwWindowShouldClose(window) && !closeApp && appInStartedScreen) {
@@ -362,7 +370,6 @@ class Pacman3D {
                 glfwPollEvents();
             }
 
-            stopStartingMenuCoroutines();
             appInStartedScreen = false;
         }
 
@@ -380,9 +387,10 @@ class Pacman3D {
                 5.0f
             );
 
-            loadGameModelHandlers();
-            generateModels();
-            startGameCoroutines();
+            modelHandlers = gameModelHandlers;
+
+            stopStartingMenuCoroutines(); // Stop the starting menu coroutines since the game is starting;
+            startGameCoroutines(); // Start the game coroutines for the game to run properly;
 
             // mainGameLoop();
             while (!glfwWindowShouldClose(window) && !closeApp && appInGameScreen) {
@@ -415,13 +423,19 @@ class Pacman3D {
 
             appInGameOverScreen = true;
 
-            // load interface to display game over screen;
+            viewCamera.reInitializateAll(
+                glm::vec3(8.5f, pacmanHeight, 0.0f),
+                glm::vec3(-1.0f, 0.0f, 0.0f),
+                glm::vec3(0.0f, 1.0f, 0.0f),
+                180.0f,
+                0.0f,
+                0.0f,
+                0.0f
+            );
+
+            modelHandlers = gameOverModelHandlers;
 
             while (!glfwWindowShouldClose(window) && !closeApp && appInGameOverScreen) {
-
-
-                // std::cout << "GameOverMenu: " << closeApp << std::endl;
-                // Play game;
 
                 closeAppOnEscPress(window);
                 drawFrame();
@@ -451,7 +465,7 @@ class Pacman3D {
             window = glfwCreateWindow(mode->width, mode->height, "Pacman3D", primaryMonitor, NULL); // Create the window (width, height, name, monitor, dc);
             glfwSetWindowUserPointer(window, this);
             glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-        } 
+        }
 
         // Initialize the Vulkan instance;
         void initVulkan() {
@@ -474,10 +488,10 @@ class Pacman3D {
         }
 
         // Generate the models info for the game;
-        void generateModels() {
+        void generateModels(std::vector<std::shared_ptr<ModelHandler>>& thisModelHandler) {
 
-            createDescriptorPool(); // Create descriptor pool;
-            for (const auto& handler : modelHandlers) {
+            createDescriptorPool(thisModelHandler); // Create descriptor pool;
+            for (const auto& handler : thisModelHandler) {
 
                 createTextureImage(*handler); // LOAD IMAGES;
                 createTextureImageView(*handler); // Create texture image view;
@@ -543,7 +557,7 @@ class Pacman3D {
         // Load the models used in the starting menu;
         void loadStartingMenuModelHandlers() {
 
-            modelHandlers.clear();
+            startingMenuModelHandlers.clear();
 
             auto titleHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f)), "textures/starting_menu/PacmanLogo5.png");
             titleHandler->vertices = startingMenuEnvGenerator.titleGenerator.getBillboardVertices();
@@ -576,12 +590,12 @@ class Pacman3D {
                 "textures/ghosts/ClydeTex.png"
             );
 
-			modelHandlers.push_back(titleHandler);
-            modelHandlers.push_back(spacebarHandler);
+            startingMenuModelHandlers.push_back(titleHandler);
+            startingMenuModelHandlers.push_back(spacebarHandler);
 
-            modelHandlers.push_back(blinkyHandler);
-            modelHandlers.push_back(pinkyHandler);
-            modelHandlers.push_back(clydeHandler);
+            startingMenuModelHandlers.push_back(blinkyHandler);
+            startingMenuModelHandlers.push_back(pinkyHandler);
+            startingMenuModelHandlers.push_back(clydeHandler);
         }
 
         bool moveGhosts = false;
@@ -652,7 +666,7 @@ class Pacman3D {
         // Create the model handlers for needed models. Temporary, will be done with a JSON later;
         void loadGameModelHandlers() {
 
-            modelHandlers.clear();
+            gameModelHandlers.clear();
 
             auto labirinthHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/BlackBrickedWall.png");
             labirinthHandler->vertices = envGenerator.mazeGenerator.getMazeVertices();
@@ -709,17 +723,17 @@ class Pacman3D {
             );
 
 
-            modelHandlers.push_back(labirinthHandler);
-            modelHandlers.push_back(floorHandler);
-            modelHandlers.push_back(skyHandler);
-            modelHandlers.push_back(leftPortalHandler);
-            modelHandlers.push_back(rightPortalHandler);
-            modelHandlers.push_back(gateHandler);
+            gameModelHandlers.push_back(labirinthHandler);
+            gameModelHandlers.push_back(floorHandler);
+            gameModelHandlers.push_back(skyHandler);
+            gameModelHandlers.push_back(leftPortalHandler);
+            gameModelHandlers.push_back(rightPortalHandler);
+            gameModelHandlers.push_back(gateHandler);
 
-            modelHandlers.push_back(blinkyHandler);
-            modelHandlers.push_back(pinkyHandler);
-            modelHandlers.push_back(inkyHandler);
-            modelHandlers.push_back(clydeHandler);
+            gameModelHandlers.push_back(blinkyHandler);
+            gameModelHandlers.push_back(pinkyHandler);
+            gameModelHandlers.push_back(inkyHandler);
+            gameModelHandlers.push_back(clydeHandler);
 
             addPelletsModelsToScene();
         }
@@ -759,7 +773,7 @@ class Pacman3D {
                         pelletHandler->indices = pelletGenerator.getPelletIndices();
                         pelletHandler->pointsWhenEaten = 10.0f;
 
-                        modelHandlers.push_back(pelletHandler);
+                        gameModelHandlers.push_back(pelletHandler);
                         pelletsInMaze[i][j] = std::make_tuple(pelletHandler, false);
                         howManyPelletsLeft ++;
                     }
@@ -771,7 +785,7 @@ class Pacman3D {
                         pelletHandler->indices = pelletGenerator.getPelletIndices();
                         pelletHandler->pointsWhenEaten = 50.0f;
 
-                        modelHandlers.push_back(pelletHandler);
+                        gameModelHandlers.push_back(pelletHandler);
                         pelletsInMaze[i][j] = std::make_tuple(pelletHandler, false);
                     }
                 }
@@ -856,11 +870,11 @@ class Pacman3D {
 				if (!std::get<1>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y])) {
 					std::get<1>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]) = true;
 
-                    auto it = std::find(modelHandlers.begin(), modelHandlers.end(), std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]));
+                    auto it = std::find(gameModelHandlers.begin(), gameModelHandlers.end(), std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]));
 
                     playerScore += std::dynamic_pointer_cast<PelletModelHandler>(std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]))->pointsWhenEaten;
 
-					modelHandlers.erase(it);
+                    gameModelHandlers.erase(it);
 
                     howManyPelletsLeft --;
                     SoundManager::queueSound("pacman_wakawaka");
@@ -870,14 +884,16 @@ class Pacman3D {
                 if (!std::get<1>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y])) {
                     std::get<1>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]) = true;
 
-                    auto it = std::find(modelHandlers.begin(), modelHandlers.end(), std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]));
+                    auto it = std::find(gameModelHandlers.begin(), gameModelHandlers.end(), std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]));
 
                     playerScore += std::dynamic_pointer_cast<PelletModelHandler>(std::get<0>(pelletsInMaze[playerPosInMaze.x][playerPosInMaze.y]))->pointsWhenEaten;
                     powerPelletGotEaten();
 
-                    modelHandlers.erase(it);
+                    gameModelHandlers.erase(it);
                 }
             }
+
+            modelHandlers = gameModelHandlers;
         }
 
         // Change ghosts behaviour when power pellet gets eaten;
@@ -1008,29 +1024,36 @@ class Pacman3D {
 
             cleanupSwapChain();
 
+            std::vector<std::vector<std::shared_ptr<ModelHandler>>> handlers = {
+                startingMenuModelHandlers,
+                gameModelHandlers,
+                gameOverModelHandlers
+            };
 
             // For each model, cleanup their variables;
-            for (const auto& handlerPtr : modelHandlers) {
+            for (auto handler : handlers) {
+                for (const auto& handlerPtr : handler) {
 
-                ModelHandler& handler = *handlerPtr;
+                    ModelHandler& handler = *handlerPtr;
 
-                vkDestroySampler(device, handler.textureSampler, nullptr);
-                vkDestroyImageView(device, handler.textureImageView, nullptr);
-                vkDestroyImage(device, handler.textureImage, nullptr);
-                vkFreeMemory(device, handler.textureImageMemory, nullptr);
+                    vkDestroySampler(device, handler.textureSampler, nullptr);
+                    vkDestroyImageView(device, handler.textureImageView, nullptr);
+                    vkDestroyImage(device, handler.textureImage, nullptr);
+                    vkFreeMemory(device, handler.textureImageMemory, nullptr);
 
-                // Clear uniform buffers;
-                for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                    vkDestroyBuffer(device, handler.uniformBuffers[i], nullptr);
-                    vkFreeMemory(device, handler.uniformBuffersMemory[i], nullptr);
+                    // Clear uniform buffers;
+                    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                        vkDestroyBuffer(device, handler.uniformBuffers[i], nullptr);
+                        vkFreeMemory(device, handler.uniformBuffersMemory[i], nullptr);
+                    }
+
+                    // Old descriptorPool and descriptorSetLayout cleanup -- Check if still works
+
+                    vkDestroyBuffer(device, handler.indexBuffer, nullptr); // Destroy vertex buffer;
+                    vkFreeMemory(device, handler.indexBufferMemory, nullptr);
+                    vkDestroyBuffer(device, handler.vertexBuffer, nullptr); // Destroy index buffer;
+                    vkFreeMemory(device, handler.vertexBufferMemory, nullptr);
                 }
-
-                // Old descriptorPool and descriptorSetLayout cleanup -- Check if still works
-
-                vkDestroyBuffer(device, handler.indexBuffer, nullptr); // Destroy vertex buffer;
-                vkFreeMemory(device, handler.indexBufferMemory, nullptr);
-                vkDestroyBuffer(device, handler.vertexBuffer, nullptr); // Destroy index buffer;
-                vkFreeMemory(device, handler.vertexBufferMemory, nullptr);
             }
 
             vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr); // Clear descriptor set;
@@ -1788,6 +1811,8 @@ class Pacman3D {
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(handler.indices.size()), 1, 0, 0, 0);
             }
 
+
+
             // Set dynamic viewport;
             VkViewport viewport{};
             viewport.x = 0.0f;
@@ -2105,9 +2130,9 @@ class Pacman3D {
 
         // START14 - Descriptor pool and sets;
 
-        void createDescriptorPool() {
+        void createDescriptorPool(std::vector<std::shared_ptr<ModelHandler>>& thisModelHandler) {
 
-            size_t totalDescriptorSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * modelHandlers.size();
+            size_t totalDescriptorSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * thisModelHandler.size();
 
             VkDescriptorPoolSize poolSize{};
             poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
