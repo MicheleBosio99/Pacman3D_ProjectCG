@@ -110,6 +110,8 @@ class Ghost {
 
             if (deltaTime > 0.5f) { return; }
 
+            // if (pacmanPosition.y > 5.0f) { return; }
+
             // pacmanPosition = computeRealPacmanPosition(pacmanPosition - glm::vec3(0.5f, 0.0f, -0.5f));
 
             glm::vec3 currentTargetPosition = pacmanPosition;
@@ -225,6 +227,8 @@ class Ghost {
             ghostSirenSound->setIsPaused(false);
             ghostSirenSound->setVolume(1.0f);
         }
+
+        void stopGhostsSirenSounds() { if (SoundManager::isSoundPlaying(soundName)) { SoundManager::soundsPlaying[soundName]->stop(); SoundManager::soundsPlaying[soundName]->drop(); } }
 
         // Determine equivalence among floats;
         bool floatEquivalence(double a, double b, double tolerance = 1e-4) { return std::abs(a - b) <= tolerance; }
@@ -515,6 +519,13 @@ class GhostCollection {
             pinky->ghostGotEatenBehaviour(time);
             inky->ghostGotEatenBehaviour(time);
             clyde->ghostGotEatenBehaviour(time);
+        }
+
+        void stopAllGhostsSirens() {
+            blinky->stopGhostsSirenSounds();
+            pinky->stopGhostsSirenSounds();
+            inky->stopGhostsSirenSounds();
+            clyde->stopGhostsSirenSounds();
         }
 
         bool checkIfGhostsGotPacman() { return blinky->didGhostGotPacman() || pinky->didGhostGotPacman() || inky->didGhostGotPacman() || clyde->didGhostGotPacman(); }

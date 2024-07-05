@@ -14,6 +14,7 @@ layout(binding = 0) uniform UniformBufferObject {
 } ubo;
 
 void main() {
-    fragColor = vec3(1.0, 0.0, 0.0); // Red color
-    fragTexCoord = vec2(0.0, 0.0);
+    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
+    fragColor = inColor; // Pass the actual color input
+    fragTexCoord = inTexCoord; // Pass the actual texture coordinates
 }

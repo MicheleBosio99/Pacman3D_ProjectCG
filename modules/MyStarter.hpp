@@ -17,6 +17,7 @@
 #include <unordered_map>
 #include <thread>
 #include <chrono>
+#include <future>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -178,6 +179,8 @@ bool appInStartedScreen = false;
 bool appInGameScreen = false;
 bool appInGameOverScreen = false;
 
+bool playerInHighView = false;
+
 
 // Process the input received from keyboard using ViewCameraControl class;
 void processInput(GLFWwindow* window) {
@@ -188,7 +191,41 @@ void processInput(GLFWwindow* window) {
 }
 
 void closeAppOnEscPress(GLFWwindow* window) { if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) { closeApp = true; } } // If escape button is clicked exit the app;
-void checkSpaceBarGotPressedPress(GLFWwindow* window) { if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) { appInStartedScreen = false; } } // If escape button is clicked exit the app;
+void checkSpaceBarGotPressedPress(GLFWwindow* window) { if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) { appInStartedScreen = false; } } // If spaceBar button is clicked exit the starting menu;
+void checkTABGotPressedPressedForViewChange(GLFWwindow* window) {
+    static bool tabPressedLastFrame = false; // Tracks if TAB was pressed in the last frame;
+
+    bool isTabPressedNow = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
+
+    if (isTabPressedNow && !tabPressedLastFrame) {
+        playerInHighView = !playerInHighView;
+        if (playerInHighView) {
+            // move pacman model inside the maze at viewCamera.position;
+
+            viewCamera.reInitializateAll(
+                glm::vec3(viewCamera.position.x, 10.6f, viewCamera.position.z),
+                viewCamera.front,
+                glm::vec3(0.0f, 1.0f, 0.0f),
+                180.0f,
+                -89.9f,
+                5.0f
+            );
+        }
+        else {
+            // move pacman model outside the maze (maybe under it to prevent visualization);
+
+            viewCamera.reInitializateAll(
+                glm::vec3(viewCamera.position.x, 0.6f, viewCamera.position.z),
+                viewCamera.front,
+                glm::vec3(0.0f, 1.0f, 0.0f),
+                180.0f,
+                0.0f,
+                5.0f
+            );
+        }
+    }
+    tabPressedLastFrame = isTabPressedNow;
+}
 
 // Mouse callback setted to handle mouse movements;
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -234,12 +271,13 @@ class Pacman3D {
     public:
 
         void run() {
+
             initWindow();
             glfwInitialization();
             soundManagerInitialization();
             initVulkan();
 
-            gameLoop(); // Start showing the game;
+            gameLoop(); // Start running the game logic and rendering;
 
             cleanup();
         }
@@ -301,7 +339,8 @@ class Pacman3D {
         int howManyPelletsLeft = 0; // How many pellets are left in the maze;
         bool pacmanDefeated = false; // Has pacman been eaten?;
         bool isGameFinished = false; // Is the game finished?;
-        int livesLeft = 100; // Pacman lives;
+        bool hasPlayerWon = false; // Has the player won the game?;
+        int livesLeft = 3; // Pacman lives;
 
 
         // GAME LIFECYCLE LOGIC; ______________________________________________________________________________________________________________________________________________________________
@@ -314,7 +353,8 @@ class Pacman3D {
         void gameLoop() {
             appInStartedScreen = true;
 
-            loadAllModels();
+            showHUD();
+            loadAllModels(); // Make it run in parallel -> Why tf futures do not work??;
 
             while (!glfwWindowShouldClose(window) && !closeApp) {
                 showStartingMenu();
@@ -331,15 +371,42 @@ class Pacman3D {
         std::vector<std::shared_ptr<ModelHandler>> gameModelHandlers; // Hold all model handlers for the game;
         std::vector<std::shared_ptr<ModelHandler>> gameOverModelHandlers; // Hold all model handlers for the game over screen;
 
+
+        std::future<void> loadStartingMenuFuture;
+        std::future<void> loadGameFuture;
+        std::future<void> loadGameOverFuture;
+
         // Used to load all models needed for the game since they are not many. If needed make this run in parallel;
         void loadAllModels() {
-            loadStartingMenuModelHandlers(); generateModels(startingMenuModelHandlers);
-            loadGameModelHandlers(); generateModels(gameModelHandlers);
-            // loadGameOverModelHandlers(); generateModels(gameOverModelHandlers);
+            // loadStartingMenuFuture = std::async(std::launch::async, [&]() { loadStartingMenuModelHandlers(); });
+            // loadGameFuture = std::async(std::launch::async, [&]() { loadGameModelHandlers(); });
+            // loadGameOverFuture = std::async(std::launch::async, [&]() { loadGameOverModelHandlers(); });
+            loadStartingMenuModelHandlers();
+            loadGameModelHandlers();
+            loadGameOverModelHandlers();
         }
         
 
-        #include <chrono> // Add this line for the sleep function
+        void showHUD() {
+
+            createHUD();
+            return;
+
+            while (!glfwWindowShouldClose(window) && !closeApp) {
+
+                float currentFrame = glfwGetTime(); deltaTime = currentFrame - lastFrame; lastFrame = currentFrame;
+
+                // std::cout << viewCamera.position.x << " " << viewCamera.position.y << " " << viewCamera.position.z << " - ";
+                // std::cout << viewCamera.front.x << " " << viewCamera.front.y << " " << viewCamera.front.z << ";" << std::endl;
+
+
+                closeAppOnEscPress(window);
+                drawFrame();
+                glfwPollEvents();
+            }
+
+            exit(0);
+		}
 
         // Show the starting menu;
         void showStartingMenu() {
@@ -393,7 +460,7 @@ class Pacman3D {
             startGameCoroutines(); // Start the game coroutines for the game to run properly;
 
             // mainGameLoop();
-            while (!glfwWindowShouldClose(window) && !closeApp && appInGameScreen) {
+            while (!glfwWindowShouldClose(window) && !closeApp && appInGameScreen && !isGameFinished) {
 
                 float currentFrame = glfwGetTime();
                 deltaTime = currentFrame - lastFrame;
@@ -407,12 +474,16 @@ class Pacman3D {
                 checkForEndGame();
 
                 if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); }
-                else if (pacmanDefeated and livesLeft == 0) { handleFinishedGame(); }
+                else if (pacmanDefeated and livesLeft == 0 || hasPlayerWon) { isGameFinished = true; }
+
+                checkTABGotPressedPressedForViewChange(window);
 
                 closeAppOnEscPress(window);
                 drawFrame();
                 glfwPollEvents();
             }
+
+            ghosts.stopAllGhostsSirens();
 
             appInGameScreen = false;
         }
@@ -596,6 +667,8 @@ class Pacman3D {
             startingMenuModelHandlers.push_back(blinkyHandler);
             startingMenuModelHandlers.push_back(pinkyHandler);
             startingMenuModelHandlers.push_back(clydeHandler);
+
+            generateModels(startingMenuModelHandlers);
         }
 
         bool moveGhosts = false;
@@ -659,9 +732,26 @@ class Pacman3D {
         // ____________________________________________________________________________________________________________________________________________________________________________________________
 
 
+        // GAME OVER LOGIC; ___________________________________________________________________________________________________________________________________________________________________________
+
+        // TODO;
+        void loadGameOverModelHandlers() {
+
+			gameOverModelHandlers.clear();
+
+            if (hasPlayerWon) {
+                // Load models to show that player has won with the score;
+            }
+            else {
+				// Load models to show that player has lost with the score and the game over;
+			}
+
+			generateModels(gameOverModelHandlers);
+		}
 
 
 
+        // PACMAN GAME LOGIC; _________________________________________________________________________________________________________________________________________________________________________
 
         // Create the model handlers for needed models. Temporary, will be done with a JSON later;
         void loadGameModelHandlers() {
@@ -736,6 +826,10 @@ class Pacman3D {
             gameModelHandlers.push_back(clydeHandler);
 
             addPelletsModelsToScene();
+
+            // loadPacmanModel();
+
+            generateModels(gameModelHandlers);
         }
 
         // Generate model matrix with translation rotation and scale using yaw pitch and roll for rotation and single float per uniform scaling;
@@ -928,7 +1022,7 @@ class Pacman3D {
         void checkForPlayerCollisionsWGhosts() { if (ghosts.checkIfGhostsGotPacman()) { SoundManager::playSound("pacman_death"); pacmanDefeated = true; } }
 
         // Check if player got all pellets;
-        void checkIfPlayerGotAllPellets() { if (howManyPelletsLeft == 0) { pacmanDefeated = true; } }
+        void checkIfPlayerGotAllPellets() { if (howManyPelletsLeft == 0) { hasPlayerWon = true; } }
 
         // Handle the game coroutines;
         void startGameCoroutines() {
@@ -967,48 +1061,25 @@ class Pacman3D {
 
         // Handle pacman defeat;
         void pacmanGotEaten() {
-			livesLeft --;
-			if (livesLeft == 0) { isGameFinished = true; }
-			else {
-				SoundManager::playSound("pacman_respawn");
+            livesLeft--;
+            if (livesLeft == 0) { isGameFinished = true; }
+            else {
+                SoundManager::playSound("pacman_respawn");
 
-                //std::cout << "Pacman got eaten! Lives left: " << livesLeft << std::endl;
+                viewCamera.reInitializateAll(
+                    pacmanStartingPosition,
+                    glm::vec3(0.0f, 1.0f, 0.0f),
+                    glm::vec3(0.0f, 1.0f, 0.0f),
+                    180.0f,
+                    0.0f,
+                    5.0f
+                );
+                std::thread makePlayerStayStill([] { viewCamera.pacmanGotEatenBehaviour(3); });
+                makePlayerStayStill.detach();
 
-                //viewCamera.setPosition(pacmanStartingPosition);
-                //viewCamera.front = glm::vec3(0.0f, 1.0f, 0.0f);
-                ///*std::thread makePlayerStayStill([] { viewCamera.pacmanGotEatenBehaviour(3); });
-                //makePlayerStayStill.detach();*/
-
-                ghosts.resetAfterEatingPacman(6);
+                ghosts.resetAfterEatingPacman(8);
                 pacmanDefeated = false;
-			}
-		}
-
-        // Handle game finish;
-        void handleFinishedGame() { isGameFinished = true; SoundManager::playSound("pacman_intermission"); }
-
-
-        void mainGameLoop() {
-            while (!glfwWindowShouldClose(window) && !closeApp && !isGameFinished) {
-
-                float currentFrame = glfwGetTime();
-                deltaTime = currentFrame - lastFrame;
-                lastFrame = currentFrame;
-
-                //processInput(window);  //
-                movePlayerAndCheckCollisionsWithWalls(); // Move player and check for collisions;
-                checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
-
-                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
-                checkForEndGame();
-
-                if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); }
-                else if (pacmanDefeated and livesLeft == 0) { handleFinishedGame(); }
-
-                drawFrame();
-                glfwPollEvents(); // Check if some special event happened;
             }
-            vkDeviceWaitIdle(device);
         }
 
 
@@ -1361,7 +1432,7 @@ class Pacman3D {
             createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
             createInfo.presentMode = presentMode;
             createInfo.clipped = VK_TRUE;
-            createInfo.oldSwapchain = VK_NULL_HANDLE; // Will change later;
+            createInfo.oldSwapchain = VK_NULL_HANDLE;
 
             if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) { throw std::runtime_error("failed to create swap chain!"); }
 
@@ -1433,8 +1504,8 @@ class Pacman3D {
         void createGraphicsPipeline() {
 
             // Load the shaders;
-            auto vertShaderCode = readFile("shaders/ShaderVert.spv");
-            auto fragShaderCode = readFile("shaders/ShaderFrag.spv");
+            auto vertShaderCode = readFile("shaders/Game/ShaderVert.spv");
+            auto fragShaderCode = readFile("shaders/Game/ShaderFrag.spv");
 
             // Create shader modules for shaders loaded;
             VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
@@ -1856,36 +1927,51 @@ class Pacman3D {
             imagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
             for (const auto& handler : modelHandlers) { updateUniformBuffer(*handler, currentFrame); } // Update uniform buffer;
+            for (const auto& handler : hudModelHandlers) { updateHUDUniformBuffer(*handler, currentFrame); } // Update hud uniform buffer;
             
 
-            // Only reset the fence if we are submitting work
+            // Only reset the fence if we are submitting work;
             vkResetFences(device, 1, &inFlightFences[currentFrame]);
             vkResetCommandBuffer(commandBuffers[currentFrame], 0); // Reset the command buffer for recording new commands;
+            vkResetCommandBuffer(hudCommandBuffers[currentFrame], 0);
 
 
             // RENDER WORLD;
             
             recordCommandBuffer(commandBuffers[currentFrame], imageIndex); // Record commandsBuffer once for each model. This also calls the Draw function;
 
-            // Submit the command buffer for execution in the graphics queue;
+            // RENDER HUD;
+            recordHUDCommandBuffer(hudCommandBuffers[currentFrame], imageIndex);
+
+            VkCommandBuffer submitCommandBuffers[] = { commandBuffers[currentFrame], hudCommandBuffers[currentFrame] };
+
             VkSubmitInfo submitInfo{};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
+            // Semaphores to wait on before execution (Image available);
             VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
             VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
             submitInfo.waitSemaphoreCount = 1;
             submitInfo.pWaitSemaphores = waitSemaphores;
             submitInfo.pWaitDstStageMask = waitStages;
-            submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
 
+            // Command buffers to submit (Combined world and HUD);
+            // submitInfo.commandBufferCount = 1;
+            // submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
+
+            std::vector<VkCommandBuffer> allCommandBuffers = commandBuffers;
+            allCommandBuffers.insert(allCommandBuffers.end(), hudCommandBuffers.begin(), hudCommandBuffers.end());
+
+            submitInfo.commandBufferCount = static_cast<uint32_t>(allCommandBuffers.size());
+            submitInfo.pCommandBuffers = allCommandBuffers.data();
+
+            // Semaphores to signal after execution (Render finished);
             VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
             submitInfo.signalSemaphoreCount = 1;
             submitInfo.pSignalSemaphores = signalSemaphores;
 
-            if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) { throw std::runtime_error("failed to submit draw command buffer!"); }
-
-            // END RENDER WORLD;
+            // Only one vkQueueSubmit needed;
+            if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) { throw std::runtime_error("failed to submit draw command buffers!"); }
 
 
 
@@ -1899,7 +1985,7 @@ class Pacman3D {
             presentInfo.swapchainCount = 1;
             presentInfo.pSwapchains = swapChains;
             presentInfo.pImageIndices = &imageIndex;
-            presentInfo.pResults = nullptr; // Optional
+            presentInfo.pResults = nullptr;
 
             result = vkQueuePresentKHR(presentQueue, &presentInfo); // Submit request to present image to swapchain;
 
@@ -2658,9 +2744,487 @@ class Pacman3D {
 
 
 
-        
-        
+
+
+
+        // START 20 - hud ____________________________________________________________________________________________________________________________________________________________
+
+
+        // New vk variables for the hud;
+        VkRenderPass hudRenderPass;
+        VkPipelineLayout hudPipelineLayout;
+        VkPipeline hudGraphicsPipeline;
+        VkDescriptorPool hudDescriptorPool;
+        VkDescriptorSetLayout hudDescriptorSetLayout;
+        std::vector<VkDescriptorSet> hudDescriptorSets;
+        VkCommandBuffer hudCommandBuffer;
+        std::vector<VkCommandBuffer> hudCommandBuffers;
+        float blendConstants[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+        std::vector<std::shared_ptr<ModelHandler>> hudModelHandlers;
+
+
+        void createHUD() {
+            loadHUDModelHandlers();
+            initHUD();
+            // mainGameLoop();
+            // hudCleanup();
+        }
+
+        // Initialize the hud;
+        void initHUD() {
+
+            createHUDRenderPass();
+            createHUDDescriptorSetLayout();
+            createHUDGraphicsPipeline();
+            //createhudFramebuffers();
+            createHUDDescriptorPool();
+
+            for (const auto& handler : hudModelHandlers) {
+
+                createTextureImage(*handler); // LOAD IMAGES;
+                createTextureImageView(*handler); // Create texture image view;
+                createTextureSampler(*handler); // Create sampler;
+
+                loadModel(*handler); // Load model;
+
+                createVertexBuffer(*handler); // Create vertex buffer;
+                createIndexBuffer(*handler); // Create index buffer;
+                createUniformBuffers(*handler); // Create uniform buffer;
+                createHUDDescriptorSets(*handler); // Create descriptor set;
+            }
+
+            createHUDCommandBuffers();
+        }
+
+        // Create the render pass for the hud;
+        void createHUDRenderPass() {
+
+            VkAttachmentDescription colorAttachment = {};
+            colorAttachment.format = swapChainImageFormat;
+            colorAttachment.samples = msaaSamples; // <<<<<<< 
+            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD; // Load the existing contents of the attachment;
+            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // Store the rendered content;
+            colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // Assuming hud is rendered last;
+            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+            VkAttachmentReference colorAttachmentRef = {};
+            colorAttachmentRef.attachment = 0;
+            colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+            VkSubpassDescription subpass = {};
+            subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpass.colorAttachmentCount = 1;
+            subpass.pColorAttachments = &colorAttachmentRef;
+
+            // Subpass dependency to ensure proper image layout transition
+            VkSubpassDependency dependency = {};
+            dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+            dependency.dstSubpass = 0;
+            dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dependency.srcAccessMask = 0;
+            dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+            VkRenderPassCreateInfo renderPassInfo = {};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+            renderPassInfo.attachmentCount = 1;
+            renderPassInfo.pAttachments = &colorAttachment;
+            renderPassInfo.subpassCount = 1;
+            renderPassInfo.pSubpasses = &subpass;
+            renderPassInfo.dependencyCount = 1;
+            renderPassInfo.pDependencies = &dependency;
+
+            if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &hudRenderPass) != VK_SUCCESS) { throw std::runtime_error("failed to create render pass!"); }
+        }
+
+        // Create the hud descriptor set layout;
+        void createHUDDescriptorSetLayout() {
+
+            VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+            samplerLayoutBinding.binding = 0;
+            samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            samplerLayoutBinding.descriptorCount = 1;
+            samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+            samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional;
+
+            VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+            layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            layoutInfo.bindingCount = 1;
+            layoutInfo.pBindings = &samplerLayoutBinding;
+
+            if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &hudDescriptorSetLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor set layout!"); }
+        }
+
+        // Create the hud framebuffers;
+        void createHUDGraphicsPipeline() {
+
+            // Load shaders
+            auto vertShaderCode = readFile("shaders/HUD/HUDShaderVert.spv");
+            auto fragShaderCode = readFile("shaders/HUD/HUDShaderFrag.spv");
+
+            // Create shader modules for shaders loaded;
+            VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+            VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+            // Load vert shaders in the pipeline;
+            VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+            vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT; // Tell pipeline where to use this shader;
+            vertShaderStageInfo.module = vertShaderModule;
+            vertShaderStageInfo.pName = "main"; // Where to start in the shader code to execute (means can be combined multiple shaders);
+            vertShaderStageInfo.pSpecializationInfo = nullptr; // Here is null, but can be used to pass to the shader different parameters for the constants used in the shader code;
+
+            // Load frag shaders in the pipeline;
+            VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+            fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            fragShaderStageInfo.module = fragShaderModule;
+            fragShaderStageInfo.pName = "main";
+            vertShaderStageInfo.pSpecializationInfo = nullptr;
+
+            // Array with the shaders structs;
+            VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+
+            // Describe format of vertex data that will be passed to the shader;
+            VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+            vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+            auto bindingDescription = Vertex::getBindingDescription();
+            auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
+            vertexInputInfo.vertexBindingDescriptionCount = 1;
+            vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+            vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+            vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+
+            // Describes what kind of geometry will be drawn from the vertices and if primitive restart should be enabled;
+            VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+            inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+            inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+            // Define viewport;
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = (float)swapChainExtent.width;
+            viewport.height = (float)swapChainExtent.height;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+
+            // Scissor rectangle to draw the entire framebuffer;
+            VkRect2D scissor{};
+            scissor.offset = { 0, 0 };
+            scissor.extent = swapChainExtent;
+
+            // Dynamic state setup (ignore configuration of some values when creating the pipeline);
+            std::vector<VkDynamicState> dynamicStates = {
+                VK_DYNAMIC_STATE_VIEWPORT,
+                VK_DYNAMIC_STATE_SCISSOR
+            };
+
+            VkPipelineDynamicStateCreateInfo dynamicState{};
+            dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+            dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+            dynamicState.pDynamicStates = dynamicStates.data();
+
+            // Create viewport state;
+            VkPipelineViewportStateCreateInfo viewportState{};
+            viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+            viewportState.viewportCount = 1;
+            viewportState.scissorCount = 1;
+
+            // Rasterizer
+            VkPipelineRasterizationStateCreateInfo rasterizer{};
+            rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+            rasterizer.depthClampEnable = VK_FALSE;
+            rasterizer.rasterizerDiscardEnable = VK_FALSE;
+            rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+            rasterizer.lineWidth = 1.0f;
+            rasterizer.cullMode = VK_CULL_MODE_NONE;
+            rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+
+            // Multisampling (disabled)
+            VkPipelineMultisampleStateCreateInfo multisampling{};
+            multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+            multisampling.sampleShadingEnable = VK_FALSE;
+            multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+            // Color blending (enable blending for transparency)
+            VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+            colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            colorBlendAttachment.blendEnable = VK_TRUE;
+            colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+            colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+            VkPipelineColorBlendStateCreateInfo colorBlending{};
+            colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+            colorBlending.logicOpEnable = VK_FALSE;
+            colorBlending.attachmentCount = 1;
+            colorBlending.pAttachments = &colorBlendAttachment;
+            colorBlending.blendConstants[0] = 1.0f; // R
+            colorBlending.blendConstants[1] = 1.0f; // G
+            colorBlending.blendConstants[2] = 1.0f; // B
+            colorBlending.blendConstants[3] = 1.0f; // A
+
+            // Depth and stencil state (disabled for huds)
+            VkPipelineDepthStencilStateCreateInfo depthStencil{};
+            depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+            depthStencil.depthTestEnable = VK_FALSE;
+            depthStencil.depthWriteEnable = VK_FALSE;
+
+            // Create pipelineLayout;
+            VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+            pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+            pipelineLayoutInfo.setLayoutCount = 1; // Optional
+            pipelineLayoutInfo.pSetLayouts = &hudDescriptorSetLayout;
+            pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
+            pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+
+            if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &hudPipelineLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create pipeline layout!"); }
+
+            // CREATE PIPELINE FINALLY;
+            VkGraphicsPipelineCreateInfo pipelineInfo{};
+            pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+            pipelineInfo.stageCount = 2;
+            pipelineInfo.pStages = shaderStages;
+            pipelineInfo.pVertexInputState = &vertexInputInfo;
+            pipelineInfo.pInputAssemblyState = &inputAssembly;
+            pipelineInfo.pViewportState = &viewportState;
+            pipelineInfo.pRasterizationState = &rasterizer;
+            pipelineInfo.pMultisampleState = &multisampling;
+            pipelineInfo.pColorBlendState = &colorBlending;
+            pipelineInfo.pDynamicState = &dynamicState;
+            pipelineInfo.pDepthStencilState = &depthStencil;
+            pipelineInfo.layout = hudPipelineLayout;
+            pipelineInfo.renderPass = hudRenderPass;
+            pipelineInfo.subpass = 0;
+            pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+            pipelineInfo.basePipelineIndex = -1; // Optional
+
+            // Create pipeline;
+            if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &hudGraphicsPipeline) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create graphics pipeline!");
+            }
+
+            // Destroy shader modules;
+            vkDestroyShaderModule(device, fragShaderModule, nullptr);
+            vkDestroyShaderModule(device, vertShaderModule, nullptr);
+        }
+
+        // Create the hud descriptor pool;
+        void createHUDDescriptorPool() {
+            size_t totalDescriptorSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * hudModelHandlers.size();
+
+            VkDescriptorPoolSize poolSize{};
+            poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            poolSize.descriptorCount = totalDescriptorSets;
+
+            std::array<VkDescriptorPoolSize, 2> poolSizes{};
+            poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+            poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+            VkDescriptorPoolCreateInfo poolInfo{};
+            poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+            poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+            poolInfo.pPoolSizes = poolSizes.data();
+            poolInfo.maxSets = totalDescriptorSets;
+
+            if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &hudDescriptorPool) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor pool!"); }
+        }
+
+        // Record hud command buffer;
+        void recordHUDCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;;
+
+            if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) { throw std::runtime_error("failed to begin recording command buffer!"); }
+
+            // Start the render pass;
+            VkRenderPassBeginInfo renderPassInfo{};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = hudRenderPass;
+            renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex]; // Pick right framebuffer for current swapchain image;
+            renderPassInfo.renderArea.offset = { 0, 0 }; // Size of render area
+            renderPassInfo.renderArea.extent = swapChainExtent;
+
+            std::array<VkClearValue, 2> clearValues{};
+            clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+
+            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassInfo.pClearValues = clearValues.data();
+
+            vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE); // Being render pass: VK_SUBPASS_CONTENTS_INLINE used to use only first level framebuffers;
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, hudGraphicsPipeline); // Bind hud graphics pipeline;
+
+            for (const auto& handlerPtr : hudModelHandlers) {
+
+                ModelHandler& handler = *handlerPtr;
+
+                VkBuffer vertexBuffers[] = { handler.vertexBuffer };
+                VkDeviceSize offsets[] = { 0 };
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+                vkCmdBindIndexBuffer(commandBuffer, handler.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, hudPipelineLayout, 0, 1, 
+                    &handler.descriptorSets[currentFrame], 0, nullptr);
+                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(handler.indices.size()), 1, 0, 0, 0);
+            }
+
+            VkViewport viewport = {};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = static_cast<float>(swapChainExtent.width);
+            viewport.height = static_cast<float>(swapChainExtent.height);
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+
+            VkRect2D scissor = {};
+            scissor.offset = { 0, 0 };
+            scissor.extent = swapChainExtent;
+
+            vkCmdSetDepthTestEnable(commandBuffer, VK_FALSE);
+
+            // Enable alpha blending
+            VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+            colorBlendAttachment.blendEnable = VK_TRUE;
+            colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+            colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+            colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            vkCmdSetBlendConstants(commandBuffer, blendConstants);
+
+            vkCmdEndRenderPass(commandBuffer);
+            if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) { throw std::runtime_error("failed to record command buffer!"); }
+        }
+
+        // Create hud command buffers;
+        void createHUDCommandBuffers() {
+            hudCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+            VkCommandBufferAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            allocInfo.commandPool = commandPool;
+            allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            allocInfo.commandBufferCount = (uint32_t)hudCommandBuffers.size();
+
+            if (vkAllocateCommandBuffers(device, &allocInfo, hudCommandBuffers.data()) != VK_SUCCESS) { throw std::runtime_error("failed to allocate hud command buffers!"); }
+        }
+
+        // Create hud descriptor sets;
+        void createHUDDescriptorSets(ModelHandler& handler) {
+
+            std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, hudDescriptorSetLayout);
+            VkDescriptorSetAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            allocInfo.descriptorPool = hudDescriptorPool;
+            allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+            allocInfo.pSetLayouts = layouts.data();
+
+            handler.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+            if (vkAllocateDescriptorSets(device, &allocInfo, handler.descriptorSets.data()) != VK_SUCCESS) { throw std::runtime_error("failed to allocate descriptor sets!"); }
+
+            // Config each descriptor;
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                VkDescriptorBufferInfo bufferInfo{};
+                bufferInfo.buffer = handler.uniformBuffers[i];
+                bufferInfo.offset = 0;
+                bufferInfo.range = sizeof(UniformBufferObject);
+
+                VkDescriptorImageInfo imageInfo{};
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.imageView = handler.textureImageView;
+                imageInfo.sampler = handler.textureSampler;
+
+                std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+                descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[0].dstSet = handler.descriptorSets[i];
+                descriptorWrites[0].dstBinding = 0;
+                descriptorWrites[0].dstArrayElement = 0;
+                descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                descriptorWrites[0].descriptorCount = 1;
+                descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+                descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[1].dstSet = handler.descriptorSets[i];
+                descriptorWrites[1].dstBinding = 1;
+                descriptorWrites[1].dstArrayElement = 0;
+                descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrites[1].descriptorCount = 1;
+                descriptorWrites[1].pImageInfo = &imageInfo;
+
+                vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+            }
+        }
+
+        // Update hud uniform buffer;
+        void updateHUDUniformBuffer(ModelHandler& handler, uint32_t currentImage) {
+            UniformBufferObject ubo{ };
+
+            ubo.model = glm::mat4(1.0f);
+
+            ubo.view = glm::mat4(1.0f);
+            ubo.view = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), glm::vec3(0, 1, 0));
+            // ubo.view = viewCamera.getViewMatrix();
+
+            ubo.proj = glm::ortho(
+                static_cast<float>(-swapChainExtent.width / 2),
+                static_cast<float>(swapChainExtent.width / 2),
+                static_cast<float>(-swapChainExtent.height / 2),
+                static_cast<float>(swapChainExtent.height / 2),
+                0.0f,
+                1.0f
+            );
+
+            ubo.proj[1][1] *= -1; // OpenGL standard to Vulkan;
+
+            memcpy(handler.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+        }
+
+        // Load hud model handlers;
+        void loadHUDModelHandlers() {
+
+            std::vector<Vertex> hudVertices1 = {
+                { {-0.45f, -0.50f, -0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, 0},
+                { {0.45f, -0.50f, -0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, 0},
+                { {0.45f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, 0},
+                { {-0.45f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, 0}
+            };
+
+            std::vector<uint32_t> hudIndices1 = { 0, 1, 2, 2, 3, 0 };
+
+            std::vector<Vertex> hudVertices2 = {
+                { {-0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, 0},
+                { {0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, 0},
+                { {0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, 0},
+                { {-0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, 0}
+            };
+
+            std::vector<uint32_t> hudIndices2 = { 0, 1, 2, 2, 3, 0 };
+
+            auto rectangle1Handler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/HUD_Test.png");
+            rectangle1Handler->vertices = hudVertices1;
+            rectangle1Handler->indices = hudIndices1;
+
+            auto rectangle2Handler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/HUD_Test.png");
+            rectangle2Handler->vertices = hudVertices2;
+            rectangle2Handler->indices = hudIndices2;
+
+            hudModelHandlers.push_back(rectangle1Handler);
+            hudModelHandlers.push_back(rectangle2Handler);
+        }
 };
-
-
 

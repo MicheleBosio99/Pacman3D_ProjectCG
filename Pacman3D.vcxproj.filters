@@ -770,7 +770,7 @@
     <ClInclude Include="core\TextHandler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\OverlayRenderer.hpp">
+    <ClInclude Include="core\HUDRenderer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\StartingMenuEnvGenerator.hpp">

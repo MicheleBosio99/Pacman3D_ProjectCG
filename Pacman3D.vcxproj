@@ -148,7 +148,7 @@
     <ClInclude Include="core\GhostsBehaviour.hpp" />
     <ClInclude Include="core\GameEnvGenerator.hpp" />
     <ClInclude Include="core\ModelHandler.hpp" />
-    <ClInclude Include="core\OverlayRenderer.hpp" />
+    <ClInclude Include="core\HUDRenderer.hpp" />
     <ClInclude Include="core\SoundManager.hpp" />
     <ClInclude Include="core\StartingMenuEnvGenerator.hpp" />
     <ClInclude Include="core\TextHandler.hpp" />

@@ -2,41 +2,41 @@
 /*
 
 
-/ START 20 - OVERLAY ____________________________________________________________________________________________________________________________________________________________
+/ START 20 - hud ____________________________________________________________________________________________________________________________________________________________
 
 
-// New vk variables for the overlay;
-VkRenderPass overlayRenderPass;
-VkPipelineLayout overlayPipelineLayout;
-VkPipeline overlayGraphicsPipeline;
-VkDescriptorPool overlayDescriptorPool;
-VkDescriptorSetLayout overlayDescriptorSetLayout;
-std::vector<VkDescriptorSet> overlayDescriptorSets;
-VkCommandBuffer overlayCommandBuffer;
-std::vector<VkCommandBuffer> overlayCommandBuffers;
+// New vk variables for the hud;
+VkRenderPass hudRenderPass;
+VkPipelineLayout hudPipelineLayout;
+VkPipeline hudGraphicsPipeline;
+VkDescriptorPool hudDescriptorPool;
+VkDescriptorSetLayout hudDescriptorSetLayout;
+std::vector<VkDescriptorSet> hudDescriptorSets;
+VkCommandBuffer hudCommandBuffer;
+std::vector<VkCommandBuffer> hudCommandBuffers;
 float blendConstants[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 
-std::vector<std::shared_ptr<ModelHandler>> overlayModelHandlers;
+std::vector<std::shared_ptr<ModelHandler>> hudModelHandlers;
 
 
-void createOverlay() {
-    loadOverlayModelHandlers();
-    initOverlay();
+void createhud() {
+    loadhudModelHandlers();
+    inithud();
     // mainGameLoop();
-    // overlayCleanup();
+    // hudCleanup();
 }
 
-// Initialize the overlay;
-void initOverlay() {
+// Initialize the hud;
+void inithud() {
 
-    createOverlayRenderPass();
-    createOverlayDescriptorSetLayout();
-    createOverlayGraphicsPipeline();
-    //createOverlayFramebuffers();
-    createOverlayDescriptorPool();
+    createhudRenderPass();
+    createhudDescriptorSetLayout();
+    createhudGraphicsPipeline();
+    //createhudFramebuffers();
+    createhudDescriptorPool();
 
-    for (const auto& handler : overlayModelHandlers) {
+    for (const auto& handler : hudModelHandlers) {
 
         createTextureImage(*handler); // LOAD IMAGES;
         createTextureImageView(*handler); // Create texture image view;
@@ -47,14 +47,14 @@ void initOverlay() {
         createVertexBuffer(*handler); // Create vertex buffer;
         createIndexBuffer(*handler); // Create index buffer;
         createUniformBuffers(*handler); // Create uniform buffer;
-        createOverlayDescriptorSets(*handler); // Create descriptor set;
+        createhudDescriptorSets(*handler); // Create descriptor set;
     }
 
-    createOverlayCommandBuffers();
+    createhudCommandBuffers();
 }
 
-// Create the render pass for the overlay;
-void createOverlayRenderPass() {
+// Create the render pass for the hud;
+void createhudRenderPass() {
 
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = swapChainImageFormat;
@@ -63,7 +63,7 @@ void createOverlayRenderPass() {
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // Store the rendered content
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // Assuming overlay is rendered last
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // Assuming hud is rendered last
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     VkAttachmentReference colorAttachmentRef = {};
@@ -93,11 +93,11 @@ void createOverlayRenderPass() {
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &overlayRenderPass) != VK_SUCCESS) { throw std::runtime_error("failed to create render pass!"); }
+    if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &hudRenderPass) != VK_SUCCESS) { throw std::runtime_error("failed to create render pass!"); }
 }
 
-// Create the overlay descriptor set layout;
-void createOverlayDescriptorSetLayout() {
+// Create the hud descriptor set layout;
+void createhudDescriptorSetLayout() {
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
     samplerLayoutBinding.binding = 0;
@@ -111,11 +111,11 @@ void createOverlayDescriptorSetLayout() {
     layoutInfo.bindingCount = 1;
     layoutInfo.pBindings = &samplerLayoutBinding;
 
-    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &overlayDescriptorSetLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor set layout!"); }
+    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &hudDescriptorSetLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor set layout!"); }
 }
 
-// Create the overlay framebuffers;
-void createOverlayGraphicsPipeline() {
+// Create the hud framebuffers;
+void createhudGraphicsPipeline() {
 
     // Load shaders
     auto vertShaderCode = readFile("shaders/ShaderVert.spv");
@@ -231,7 +231,7 @@ void createOverlayGraphicsPipeline() {
     colorBlending.blendConstants[2] = 1.0f; // B
     colorBlending.blendConstants[3] = 1.0f; // A
 
-    // Depth and stencil state (disabled for overlays)
+    // Depth and stencil state (disabled for huds)
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = VK_FALSE;
@@ -241,11 +241,11 @@ void createOverlayGraphicsPipeline() {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1; // Optional
-    pipelineLayoutInfo.pSetLayouts = &overlayDescriptorSetLayout;
+    pipelineLayoutInfo.pSetLayouts = &hudDescriptorSetLayout;
     pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
     pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &overlayPipelineLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create pipeline layout!"); }
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &hudPipelineLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create pipeline layout!"); }
 
     // CREATE PIPELINE FINALLY;
     VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -260,14 +260,14 @@ void createOverlayGraphicsPipeline() {
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.pDepthStencilState = &depthStencil;
-    pipelineInfo.layout = overlayPipelineLayout;
-    pipelineInfo.renderPass = overlayRenderPass;
+    pipelineInfo.layout = hudPipelineLayout;
+    pipelineInfo.renderPass = hudRenderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1; // Optional
 
     // Create pipeline;
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &overlayGraphicsPipeline) != VK_SUCCESS) {
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &hudGraphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
 
@@ -276,9 +276,9 @@ void createOverlayGraphicsPipeline() {
     vkDestroyShaderModule(device, vertShaderModule, nullptr);
 }
 
-// Create the overlay descriptor pool;
-void createOverlayDescriptorPool() {
-    size_t totalDescriptorSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * overlayModelHandlers.size();
+// Create the hud descriptor pool;
+void createhudDescriptorPool() {
+    size_t totalDescriptorSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * hudModelHandlers.size();
 
     VkDescriptorPoolSize poolSize{};
     poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -296,11 +296,11 @@ void createOverlayDescriptorPool() {
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = totalDescriptorSets;
 
-    if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &overlayDescriptorPool) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor pool!"); }
+    if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &hudDescriptorPool) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor pool!"); }
 }
 
-// Record overlay command buffer;
-void recordOverlayCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+// Record hud command buffer;
+void recordhudCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;;
 
@@ -309,7 +309,7 @@ void recordOverlayCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInd
     // Start the render pass;
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = overlayRenderPass;
+    renderPassInfo.renderPass = hudRenderPass;
     renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex]; // Pick right framebuffer for current swapchain image;
     renderPassInfo.renderArea.offset = { 0, 0 }; // Size of render area
     renderPassInfo.renderArea.extent = swapChainExtent;
@@ -322,9 +322,9 @@ void recordOverlayCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInd
     renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE); // Being render pass: VK_SUBPASS_CONTENTS_INLINE used to use only first level framebuffers;
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, overlayGraphicsPipeline); // Bind overlay graphics pipeline;
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, hudGraphicsPipeline); // Bind hud graphics pipeline;
 
-    for (const auto& handlerPtr : overlayModelHandlers) {
+    for (const auto& handlerPtr : hudModelHandlers) {
 
         ModelHandler& handler = *handlerPtr;
 
@@ -368,25 +368,25 @@ void recordOverlayCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInd
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) { throw std::runtime_error("failed to record command buffer!"); }
 }
 
-// Create overlay command buffers;
-void createOverlayCommandBuffers() {
-    overlayCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+// Create hud command buffers;
+void createhudCommandBuffers() {
+    hudCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = commandPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t)overlayCommandBuffers.size();
+    allocInfo.commandBufferCount = (uint32_t)hudCommandBuffers.size();
 
-    if (vkAllocateCommandBuffers(device, &allocInfo, overlayCommandBuffers.data()) != VK_SUCCESS) { throw std::runtime_error("failed to allocate overlay command buffers!"); }
+    if (vkAllocateCommandBuffers(device, &allocInfo, hudCommandBuffers.data()) != VK_SUCCESS) { throw std::runtime_error("failed to allocate hud command buffers!"); }
 }
 
-// Create overlay descriptor sets;
-void createOverlayDescriptorSets(ModelHandler& handler) {
+// Create hud descriptor sets;
+void createhudDescriptorSets(ModelHandler& handler) {
 
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, overlayDescriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, hudDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = overlayDescriptorPool;
+    allocInfo.descriptorPool = hudDescriptorPool;
     allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     allocInfo.pSetLayouts = layouts.data();
 
@@ -427,8 +427,8 @@ void createOverlayDescriptorSets(ModelHandler& handler) {
     }
 }
 
-// Update overlay uniform buffer;
-void updateOverlayUniformBuffer(ModelHandler& handler, uint32_t currentImage) {
+// Update hud uniform buffer;
+void updatehudUniformBuffer(ModelHandler& handler, uint32_t currentImage) {
     UniformBufferObject ubo{ };
 
     ubo.model = glm::mat4(1.0f);
@@ -448,37 +448,37 @@ void updateOverlayUniformBuffer(ModelHandler& handler, uint32_t currentImage) {
     memcpy(handler.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
-// Load overlay model handlers;
-void loadOverlayModelHandlers() {
+// Load hud model handlers;
+void loadhudModelHandlers() {
 
-    std::vector<Vertex> overlayVertices1 = {
+    std::vector<Vertex> hudVertices1 = {
         { {-0.45f, 0.0f, -0.45f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, 0},
         { {0.45f, 0.0f, -0.45f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, 0},
         { {0.45f, 0.0f, 0.45f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, 0},
         { {-0.45f, 0.0f, 0.45f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, 0}
     };
 
-    std::vector<uint32_t> overlayIndices1 = { 0, 1, 2, 2, 3, 0 };
+    std::vector<uint32_t> hudIndices1 = { 0, 1, 2, 2, 3, 0 };
 
-    std::vector<Vertex> overlayVertices2 = {
+    std::vector<Vertex> hudVertices2 = {
         { {-0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, 0},
         { {0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, 0},
         { {0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, 0},
         { {-0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, 0}
     };
 
-    std::vector<uint32_t> overlayIndices2 = { 0, 1, 2, 2, 3, 0 };
+    std::vector<uint32_t> hudIndices2 = { 0, 1, 2, 2, 3, 0 };
 
     auto rectangle1Handler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/Gold.png");
-    rectangle1Handler->vertices = overlayVertices1;
-    rectangle1Handler->indices = overlayIndices1;
+    rectangle1Handler->vertices = hudVertices1;
+    rectangle1Handler->indices = hudIndices1;
 
     auto rectangle2Handler = std::make_shared<EnvironmentModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/Gold.png");
-    rectangle2Handler->vertices = overlayVertices2;
-    rectangle2Handler->indices = overlayIndices2;
+    rectangle2Handler->vertices = hudVertices2;
+    rectangle2Handler->indices = hudIndices2;
 
-    overlayModelHandlers.push_back(rectangle1Handler);
-    overlayModelHandlers.push_back(rectangle2Handler);
+    hudModelHandlers.push_back(rectangle1Handler);
+    hudModelHandlers.push_back(rectangle2Handler);
 }
 
 
@@ -488,27 +488,27 @@ void loadOverlayModelHandlers() {
 
 In drawFrame:
 
-for (const auto& handler : overlayModelHandlers) { updateOverlayUniformBuffer(*handler, currentFrame); } // Update overlay uniform buffer;
+for (const auto& handler : hudModelHandlers) { updatehudUniformBuffer(*handler, currentFrame); } // Update hud uniform buffer;
 
-// RENDER OVERLAY;
+// RENDER hud;
 
-vkResetCommandBuffer(overlayCommandBuffers[currentFrame], 0); // Assuming you have a separate command buffer array for the overlay
-recordOverlayCommandBuffer(overlayCommandBuffers[currentFrame], imageIndex); // This function should be defined by you to record overlay commands
+vkResetCommandBuffer(hudCommandBuffers[currentFrame], 0); // Assuming you have a separate command buffer array for the hud
+recordhudCommandBuffer(hudCommandBuffers[currentFrame], imageIndex); // This function should be defined by you to record hud commands
 
-VkSubmitInfo overlaySubmitInfo{};
-overlaySubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-overlaySubmitInfo.waitSemaphoreCount = 1;
-overlaySubmitInfo.pWaitSemaphores = signalSemaphores; // Wait for the main scene to finish rendering
-VkPipelineStageFlags overlayWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-overlaySubmitInfo.pWaitDstStageMask = overlayWaitStages;
-overlaySubmitInfo.commandBufferCount = 1;
-overlaySubmitInfo.pCommandBuffers = &overlayCommandBuffers[currentFrame];
-overlaySubmitInfo.signalSemaphoreCount = 1;
-overlaySubmitInfo.pSignalSemaphores = signalSemaphores; // Re-use the same semaphore for presentation
+VkSubmitInfo hudSubmitInfo{};
+hudSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+hudSubmitInfo.waitSemaphoreCount = 1;
+hudSubmitInfo.pWaitSemaphores = signalSemaphores; // Wait for the main scene to finish rendering
+VkPipelineStageFlags hudWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+hudSubmitInfo.pWaitDstStageMask = hudWaitStages;
+hudSubmitInfo.commandBufferCount = 1;
+hudSubmitInfo.pCommandBuffers = &hudCommandBuffers[currentFrame];
+hudSubmitInfo.signalSemaphoreCount = 1;
+hudSubmitInfo.pSignalSemaphores = signalSemaphores; // Re-use the same semaphore for presentation
 
-if (vkQueueSubmit(graphicsQueue, 1, &overlaySubmitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) { throw std::runtime_error("failed to submit overlay command buffer!"); }
+if (vkQueueSubmit(graphicsQueue, 1, &hudSubmitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) { throw std::runtime_error("failed to submit hud command buffer!"); }
 
-// END RENDER OVERLAY;
+// END RENDER hud;
 
 
 
