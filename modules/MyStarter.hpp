@@ -181,6 +181,8 @@ bool appInGameOverScreen = false;
 
 bool playerInHighView = false;
 
+float playerHighViewY = pacmanHeight + 10.0f;
+
 
 // Process the input received from keyboard using ViewCameraControl class;
 void processInput(GLFWwindow* window) {
@@ -200,10 +202,9 @@ void checkTABGotPressedPressedForViewChange(GLFWwindow* window) {
     if (isTabPressedNow && !tabPressedLastFrame) {
         playerInHighView = !playerInHighView;
         if (playerInHighView) {
-            // move pacman model inside the maze at viewCamera.position;
 
             viewCamera.reInitializateAll(
-                glm::vec3(viewCamera.position.x, 10.6f, viewCamera.position.z),
+                glm::vec3(viewCamera.position.x, playerHighViewY, viewCamera.position.z),
                 viewCamera.front,
                 glm::vec3(0.0f, 1.0f, 0.0f),
                 180.0f,
@@ -212,10 +213,9 @@ void checkTABGotPressedPressedForViewChange(GLFWwindow* window) {
             );
         }
         else {
-            // move pacman model outside the maze (maybe under it to prevent visualization);
 
             viewCamera.reInitializateAll(
-                glm::vec3(viewCamera.position.x, 0.6f, viewCamera.position.z),
+                glm::vec3(viewCamera.position.x, pacmanHeight, viewCamera.position.z),
                 viewCamera.front,
                 glm::vec3(0.0f, 1.0f, 0.0f),
                 180.0f,
@@ -371,6 +371,8 @@ class Pacman3D {
         std::vector<std::shared_ptr<ModelHandler>> gameModelHandlers; // Hold all model handlers for the game;
         std::vector<std::shared_ptr<ModelHandler>> gameOverModelHandlers; // Hold all model handlers for the game over screen;
 
+        std::shared_ptr<PacmanModelHandler> pacmanModelHandler; // Hold the pacman model handler;
+
 
         std::future<void> loadStartingMenuFuture;
         std::future<void> loadGameFuture;
@@ -466,17 +468,18 @@ class Pacman3D {
                 deltaTime = currentFrame - lastFrame;
                 lastFrame = currentFrame;
 
-                //processInput(window);  //
+                // processInput(window); // Used to move camera with no wall collisions;
                 movePlayerAndCheckCollisionsWithWalls(); // Move player and check for collisions;
+                movePacmanModel();
                 checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
                 ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
-                checkForEndGame();
+                checkForEndGame(); // Check if the game is over;
 
-                if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); }
-                else if (pacmanDefeated and livesLeft == 0 || hasPlayerWon) { isGameFinished = true; }
+                if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); } // If pacman got eaten then respawn him;
+                else if (pacmanDefeated and livesLeft == 0 || hasPlayerWon) { isGameFinished = true; } // If pacman got eaten and has no lives left or player won then game is finished;
 
-                checkTABGotPressedPressedForViewChange(window);
+                checkTABGotPressedPressedForViewChange(window); // Check if the TAB button was pressed to change the view;
 
                 closeAppOnEscPress(window);
                 drawFrame();
@@ -753,6 +756,8 @@ class Pacman3D {
 
         // PACMAN GAME LOGIC; _________________________________________________________________________________________________________________________________________________________________________
 
+        glm::vec3 pacmanModelStartingPosition = glm::vec3(0.0f, -10.0f, 0.0f); // Set default Pacman MODEL starting position in world;
+
         // Create the model handlers for needed models. Temporary, will be done with a JSON later;
         void loadGameModelHandlers() {
 
@@ -783,6 +788,11 @@ class Pacman3D {
             gateHandler->indices = envGenerator.gateGenerator.getGateIndices();
 
 
+            pacmanModelHandler = std::make_shared<PacmanModelHandler>(
+                generateModelMatrix(pacmanModelStartingPosition, 0.0f, 0.0f, 0.0f, 0.2f),
+                "models/pacman1.obj",
+                "textures/pacman/pacman.png"
+            );
 
             auto blinkyHandler = std::make_shared<GhostGameModelHandler>(
                 ghosts.blinky,
@@ -820,14 +830,14 @@ class Pacman3D {
             gameModelHandlers.push_back(rightPortalHandler);
             gameModelHandlers.push_back(gateHandler);
 
+            gameModelHandlers.push_back(pacmanModelHandler);
+
             gameModelHandlers.push_back(blinkyHandler);
             gameModelHandlers.push_back(pinkyHandler);
             gameModelHandlers.push_back(inkyHandler);
             gameModelHandlers.push_back(clydeHandler);
 
             addPelletsModelsToScene();
-
-            // loadPacmanModel();
 
             generateModels(gameModelHandlers);
         }
@@ -934,6 +944,9 @@ class Pacman3D {
             }
         }
 
+		// Move the pacman model;
+        void movePacmanModel() { pacmanModelHandler->modifyModelMatrix(viewCamera.position, viewCamera.front); }
+
         // Update player position for sound;
         void updatePlayerPositionForSound() {
             SoundManager::engine->setListenerPosition(
@@ -1019,7 +1032,7 @@ class Pacman3D {
         }
 
         // Check if player collided with ghosts;
-        void checkForPlayerCollisionsWGhosts() { if (ghosts.checkIfGhostsGotPacman()) { SoundManager::playSound("pacman_death"); pacmanDefeated = true; } }
+        void checkForPlayerCollisionsWGhosts() { if (ghosts.checkIfGhostsGotPacman()) { SoundManager::playSound("pacman_death"); playerScore -= 75; pacmanDefeated = true; } }
 
         // Check if player got all pellets;
         void checkIfPlayerGotAllPellets() { if (howManyPelletsLeft == 0) { hasPlayerWon = true; } }
@@ -1062,6 +1075,8 @@ class Pacman3D {
         // Handle pacman defeat;
         void pacmanGotEaten() {
             livesLeft--;
+            if (playerInHighView) { playerInHighView = false; }
+
             if (livesLeft == 0) { isGameFinished = true; }
             else {
                 SoundManager::playSound("pacman_respawn");
@@ -1829,6 +1844,7 @@ class Pacman3D {
             if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) { throw std::runtime_error("failed to create command pool!"); }
         }
 
+
         void createCommandBuffers() {
             commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
             VkCommandBufferAllocateInfo allocInfo{};
@@ -1995,6 +2011,7 @@ class Pacman3D {
             currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
         }
 
+
         void createSyncObjects() {
             imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
             renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -2040,6 +2057,7 @@ class Pacman3D {
             createDepthResources();
             createFramebuffers();
         }
+
 
         void cleanupSwapChain() {
             for (size_t i = 0; i < swapChainFramebuffers.size(); i++) { vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr); }
@@ -2181,6 +2199,7 @@ class Pacman3D {
             if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor set layout!"); }
         }
 
+
         void createUniformBuffers(ModelHandler& handler) {
             VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -2238,6 +2257,7 @@ class Pacman3D {
 
             if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor pool!"); }
         }
+
 
         void createDescriptorSets(ModelHandler& handler) {
 
@@ -2325,6 +2345,7 @@ class Pacman3D {
             vkFreeMemory(device, stagingBufferMemory, nullptr);
         }
 
+
         void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
             VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
 
@@ -2359,6 +2380,7 @@ class Pacman3D {
             vkBindImageMemory(device, image, imageMemory, 0);
         }
 
+
         VkCommandBuffer beginSingleTimeCommands() {
             VkCommandBufferAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -2378,6 +2400,7 @@ class Pacman3D {
             return commandBuffer;
         }
 
+
         void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
             vkEndCommandBuffer(commandBuffer);
 
@@ -2391,6 +2414,7 @@ class Pacman3D {
 
             vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
         }
+
 
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
             VkCommandBuffer commandBuffer = beginSingleTimeCommands();
@@ -2453,6 +2477,7 @@ class Pacman3D {
             endSingleTimeCommands(commandBuffer);
         }
 
+
         void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
             VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -2480,7 +2505,6 @@ class Pacman3D {
         }
 
 
-
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
             VkImageViewCreateInfo viewInfo{};
             viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -2498,7 +2522,9 @@ class Pacman3D {
             return imageView;
         }
 
+
         void createTextureImageView(ModelHandler& handler) { handler.textureImageView = createImageView(handler.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, handler.mipLevels); }
+
 
         void createTextureSampler(ModelHandler& handler) {
             VkPhysicalDeviceProperties properties{};
@@ -2541,7 +2567,9 @@ class Pacman3D {
             transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
         }
 
+
         bool hasStencilComponent(VkFormat format) { return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT; }
+
 
         VkFormat findDepthFormat() {
             return findSupportedFormat(
@@ -2550,6 +2578,7 @@ class Pacman3D {
                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
             );
         }
+
 
         VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
             for (VkFormat format : candidates) {
@@ -2730,6 +2759,7 @@ class Pacman3D {
 
             return VK_SAMPLE_COUNT_1_BIT;
         }
+
 
         void createColorResources() {
             VkFormat colorFormat = swapChainImageFormat;

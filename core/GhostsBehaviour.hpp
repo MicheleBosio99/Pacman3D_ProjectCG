@@ -87,6 +87,8 @@ class Ghost {
 
         float elapsedTime = 0.0f;
 
+        float verticalMovement = 0.1f; // Maximum vertical translation;
+
         bool ghostGotEaten = false;
 
         int i;
@@ -110,7 +112,7 @@ class Ghost {
 
             if (deltaTime > 0.5f) { return; }
 
-            // if (pacmanPosition.y > 5.0f) { return; }
+            elapsedTime += deltaTime;
 
             // pacmanPosition = computeRealPacmanPosition(pacmanPosition - glm::vec3(0.5f, 0.0f, -0.5f));
 
@@ -155,6 +157,8 @@ class Ghost {
 
             glm::vec3 translation = glm::normalize(nextCell - currentPosition) * movement;
             glm::vec3 newPosition = translation + currentPosition;
+            newPosition.y = sin(elapsedTime * 7.5f) * verticalMovement + 0.6f; // Verfical movement;
+
             glm::vec3 initialTranslation = glm::vec3(initialMatrixTransf[3]);
             glm::vec3 translationDifference = newPosition - initialTranslation;
             glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translationDifference);
@@ -164,9 +168,6 @@ class Ghost {
 
             // Update the current position;
             currentPosition = newPosition;
-
-            // Generate directional sound;
-            //if(glm::distance)
 
             glm::vec3 soundDirection = glm::normalize(pacmanPosition - currentPosition);
             irrklang::vec3df irrKlangPosition(currentPosition.x, currentPosition.y, currentPosition.z);
