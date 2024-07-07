@@ -56,6 +56,71 @@ class BillBoardGenerator {
         }
 };
 
+class MenuFloorGenerator {
+
+    public:
+
+        float floorSide;
+        int numOfSegments;
+        int textureRepeatCount;
+        float floorHeight = 0.0f;
+
+        std::vector<Vertex> floorVertices;
+        std::vector<uint32_t> floorIndices;
+
+        MenuFloorGenerator(float floorHeight = 0.0f, float sideLength = 50.0f, int segments = 50, int textureRepeatCount = 50)
+            : floorSide(sideLength), numOfSegments(segments), textureRepeatCount(textureRepeatCount) { generateFloorMesh(); }
+
+        std::vector<Vertex> getFloorVertices() { return floorVertices; }
+        std::vector<uint32_t> getFloorIndices() { return floorIndices; }
+
+    private:
+
+        void generateFloorMesh() {
+
+            floorVertices.clear();
+            floorIndices.clear();
+
+            float halfLength = floorSide / 2.0f;
+            float segmentSize = floorSide / numOfSegments;
+
+            // Fill vertices vector;
+            for (int z = 0; z <= numOfSegments; z++) {
+                for (int x = 0; x <= numOfSegments; x++) {
+
+                    float xPos = -halfLength + x * segmentSize;
+                    float zPos = -halfLength + z * segmentSize;
+
+                    // Modified texture coordinates for repetition;
+                    float u = static_cast<float>(x) / numOfSegments * textureRepeatCount;
+                    float v = static_cast<float>(z) / numOfSegments * textureRepeatCount;
+
+                    floorVertices.push_back(Vertex{ {xPos, floorHeight, zPos}, color, {u, v}, ENVIRONMENT_MAT });
+                }
+            }
+
+            // Fill indices vector;
+            for (int z = 0; z < numOfSegments; z++) {
+                for (int x = 0; x < numOfSegments; x++) {
+
+                    int topLeft = (z * (numOfSegments + 1)) + x;
+                    int topRight = topLeft + 1;
+                    int bottomLeft = topLeft + (numOfSegments + 1);
+                    int bottomRight = bottomLeft + 1;
+
+                    floorIndices.push_back(topLeft);
+                    floorIndices.push_back(bottomLeft);
+                    floorIndices.push_back(topRight);
+
+                    floorIndices.push_back(topRight);
+                    floorIndices.push_back(bottomLeft);
+                    floorIndices.push_back(bottomRight);
+                }
+            }
+        }
+
+};
+
 // Class to generate;
 class StartingMenuEnvGenerator {
 
@@ -63,6 +128,7 @@ class StartingMenuEnvGenerator {
 
         BillBoardGenerator titleGenerator = BillBoardGenerator();
         BillBoardGenerator spacebarGenerator = BillBoardGenerator(5.0f, 0.577f, glm::vec3(0.0f, -2.0f, 0.0f));
+        MenuFloorGenerator floorGenerator = MenuFloorGenerator(0.0f, 20.0f);
 
 };
 

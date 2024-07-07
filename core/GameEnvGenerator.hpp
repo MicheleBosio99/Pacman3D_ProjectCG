@@ -261,6 +261,7 @@ class FloorGenerator {
         float floorSide;
         int numOfSegments;
         int textureRepeatCount;
+        float floorHeight = 0.0f;
         
         std::vector<Vertex> floorVertices;
         std::vector<uint32_t> floorIndices;
@@ -291,7 +292,7 @@ class FloorGenerator {
                     float u = static_cast<float>(x) / numOfSegments * textureRepeatCount;
                     float v = static_cast<float>(z) / numOfSegments * textureRepeatCount;
 
-                    floorVertices.push_back(Vertex{ {xPos, 0.0f, zPos}, color, {u, v}, ENVIRONMENT_MAT });
+                    floorVertices.push_back(Vertex{ {xPos, floorHeight, zPos}, color, {u, v}, ENVIRONMENT_MAT });
                 }
             }
 

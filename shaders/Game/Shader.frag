@@ -121,7 +121,7 @@ void main() {
 //         case 0:  // Environment
 //             brdfResult = calculateEnvironmentBRDF(normal, lightDir);
 //             break;
-//         case 1:  // Ghost
+//         case 1:  // Sky
 //             brdfResult = calculateGhostBRDF(normal, lightDir, viewDir);
 //             break;
 //         case 2:  // Pellet

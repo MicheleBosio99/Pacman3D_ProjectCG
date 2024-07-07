@@ -37,7 +37,7 @@
 #include <tiny_obj_loader.h>
 
 
-const uint32_t WIDTH = 1600;
+const uint32_t WIDTH = 1920;
 const uint32_t HEIGHT = 1080;
 
 const float pacmanHeight = 0.6f;
@@ -52,7 +52,8 @@ enum MATERIAL_TYPE {
     ENVIRONMENT_MAT,
     SKY_MAT,
     PELLET_MAT,
-    GHOST_MAT,
+    FROM_FILE_MAT,
+    HUD_MAT,
 };
 
 // Queue families struct;
@@ -81,7 +82,7 @@ struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
-    int materialID;
+    MATERIAL_TYPE materialID;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
@@ -133,6 +134,8 @@ struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+    glm::vec3 sunDireciton;
+    glm::vec3 sunColor;
 };
 
 static std::vector<char> readFile(const std::string& filename) {
@@ -358,9 +361,7 @@ class Pacman3D {
 
             while (!glfwWindowShouldClose(window) && !closeApp) {
                 showStartingMenu();
-                std::cout << "Starting Menu closed" << std::endl;
                 startPacmanGame();
-                std::cout << "Game over" << std::endl;
                 showGameOver();
             }
             vkDeviceWaitIdle(device);
@@ -372,7 +373,10 @@ class Pacman3D {
         std::vector<std::shared_ptr<ModelHandler>> gameOverModelHandlers; // Hold all model handlers for the game over screen;
 
         std::shared_ptr<PacmanModelHandler> pacmanModelHandler; // Hold the pacman model handler;
-
+        std::shared_ptr<GhostMenuModelHandler> blinkyMenuHandler; // Hold the blinky ghost model handler;
+        std::shared_ptr<GhostMenuModelHandler> pinkyMenuHandler; // Hold the pinky ghost model handler;
+        std::shared_ptr<GhostMenuModelHandler> inkyMenuHandler; // Hold the inky ghost model handler;
+        std::shared_ptr<GhostMenuModelHandler> clydeMenuHandler; // Hold the clyde ghost model handler;
 
         std::future<void> loadStartingMenuFuture;
         std::future<void> loadGameFuture;
@@ -439,6 +443,8 @@ class Pacman3D {
                 glfwPollEvents();
             }
 
+            // Remove the pacman model handler from the starting menu model handlers;
+            startingMenuModelHandlers.erase(std::remove(startingMenuModelHandlers.begin(), startingMenuModelHandlers.end(), pacmanModelHandler), startingMenuModelHandlers.end());
             appInStartedScreen = false;
         }
 
@@ -473,7 +479,7 @@ class Pacman3D {
                 movePacmanModel();
                 checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
-                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
+                // ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
                 checkForEndGame(); // Check if the game is over;
 
                 if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); } // If pacman got eaten then respawn him;
@@ -624,10 +630,6 @@ class Pacman3D {
 
         // STARTING MENU LOGIC; ______________________________________________________________________________________________________________________________________________________________________
 
-        glm::mat4 blinkyModelMatrix;
-        glm::mat4 pinkyModelMatrix;
-        glm::mat4 clydeModelMatrix;
-
         // Load the models used in the starting menu;
         void loadStartingMenuModelHandlers() {
 
@@ -641,35 +643,52 @@ class Pacman3D {
             spacebarHandler->vertices = startingMenuEnvGenerator.spacebarGenerator.getBillboardVertices();
             spacebarHandler->indices = startingMenuEnvGenerator.spacebarGenerator.getBillboardIndices();
 
+            auto floorHandler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f)), "textures/starting_menu/Black.png");
+            floorHandler->vertices = startingMenuEnvGenerator.floorGenerator.getFloorVertices();
+            floorHandler->indices = startingMenuEnvGenerator.floorGenerator.getFloorIndices();
 
-            blinkyModelMatrix = generateModelMatrix(glm::vec3(-8.0f, -18.0f, 3.0f), 180.0f, 0.0f, 0.0f, 0.1f);
-            pinkyModelMatrix = generateModelMatrix(glm::vec3(-4.0f, -3.0f, 10.0f), -90.0f, 0.0f, 0.0f, 0.18f);
-            clydeModelMatrix = generateModelMatrix(glm::vec3(2.0f, 2.0f, -4.0f), 90.0f, 0.0f, 0.0f, 0.25f);
 
-            auto blinkyHandler = std::make_shared<GhostMenuModelHandler>(
-				&blinkyModelMatrix,
+            pacmanModelHandler = std::make_shared<PacmanModelHandler>(
+                generateModelMatrix(pacmanModelStartingPosition, 0.0f, 0.0f, 0.0f, 0.2f),
+                "models/pacman1.obj",
+                "textures/pacman/pacman.png"
+            );
+
+
+            blinkyMenuHandler = std::make_shared<GhostMenuModelHandler>(
+                generateModelMatrix(glm::vec3(-8.0f, -18.0f, 3.0f), 180.0f, 0.0f, 0.0f, 0.1f),
 				"models/ghostModel.obj",
 				"textures/ghosts/BlinkyTex.png"
 			);
 
-            auto pinkyHandler = std::make_shared<GhostMenuModelHandler>(
-                &pinkyModelMatrix,
+            pinkyMenuHandler = std::make_shared<GhostMenuModelHandler>(
+                generateModelMatrix(glm::vec3(-4.0f, -3.0f, 10.0f), -90.0f, 0.0f, 0.0f, 0.18f),
                 "models/ghostModel.obj",
                 "textures/ghosts/PinkyTex.png"
             );
 
-            auto clydeHandler = std::make_shared<GhostMenuModelHandler>(
-                &clydeModelMatrix,
+            inkyMenuHandler = std::make_shared<GhostMenuModelHandler>(
+                generateModelMatrix(glm::vec3(-4.0f, -3.0f, 10.0f), -90.0f, 0.0f, 0.0f, 0.18f),
+                "models/ghostModel.obj",
+                "textures/ghosts/InkyTex.png"
+            );
+
+            clydeMenuHandler = std::make_shared<GhostMenuModelHandler>(
+                generateModelMatrix(glm::vec3(2.0f, 2.0f, -4.0f), 90.0f, 0.0f, 0.0f, 0.25f),
                 "models/ghostModel.obj",
                 "textures/ghosts/ClydeTex.png"
             );
 
             startingMenuModelHandlers.push_back(titleHandler);
             startingMenuModelHandlers.push_back(spacebarHandler);
+            startingMenuModelHandlers.push_back(floorHandler);
 
-            startingMenuModelHandlers.push_back(blinkyHandler);
-            startingMenuModelHandlers.push_back(pinkyHandler);
-            startingMenuModelHandlers.push_back(clydeHandler);
+            startingMenuModelHandlers.push_back(pacmanModelHandler);
+            
+            startingMenuModelHandlers.push_back(blinkyMenuHandler);
+            startingMenuModelHandlers.push_back(pinkyMenuHandler);
+            startingMenuModelHandlers.push_back(inkyMenuHandler);
+            startingMenuModelHandlers.push_back(clydeMenuHandler);
 
             generateModels(startingMenuModelHandlers);
         }
@@ -689,47 +708,9 @@ class Pacman3D {
 
         }
 
-        float blinkySpeed = 4.0f;
-        float pinkySpeed = 4.0f;
-        float clydeSpeed = 4.0f;
-
-        // float zLimitBlinky = 10.0f;
-        float zLimitPinky = 4.0f;
-        float zLimitClyde = 12.0f;
-
         // Move the ghosts in the starting menu;
         void moveGhostsInStartingMenu(float deltaTime) {
-            if (!moveGhosts) { return; }
-
-            // Current time since the start of the program
-            float currentTime = glfwGetTime();
-
-            // Calculate new Y positions based on sine wave for smooth oscillation
-            float blinkyYOffset = sin(currentTime * blinkySpeed + 1.0f) * 0.6f - 4.0f;
-            float pinkyYOffset = sin(currentTime * pinkySpeed * 0.4f) * 1.6f + 2.0f;
-            float clydeYOffset = sin(currentTime * clydeSpeed * 1.2f) * 0.4f;
-
-            // Calculate rotation angles for each ghost
-            float pinkyRotationAngle = currentTime * pinkySpeed * 1.2f;
-            float clydeRotationAngle = currentTime * clydeSpeed;
-
-            // Blinky faces the camera
-            glm::vec3 blinkyPosition = glm::vec3(blinkyModelMatrix[3]);
-            blinkyPosition.y = blinkyYOffset;
-            glm::mat4 blinkyLookAt = glm::rotate(glm::inverse(glm::lookAt(viewCamera.position, blinkyPosition, glm::vec3(0.0f, 1.0f, 0.0f))), glm::radians(85.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            // Extract the rotation part from the lookAt matrix
-            glm::mat4 blinkyRotation = glm::mat4(glm::mat3(blinkyLookAt));
-            blinkyModelMatrix = glm::translate(glm::mat4(1.0f), blinkyPosition) * blinkyRotation;
-
-            glm::vec3 pinkyPosition = glm::vec3(pinkyModelMatrix[3]);
-            pinkyPosition.y = pinkyYOffset;
-            glm::mat4 pinkyRotation = glm::rotate(glm::mat4(1.0f), pinkyRotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-            pinkyModelMatrix = glm::translate(glm::mat4(1.0f), pinkyPosition) * pinkyRotation;
-
-            glm::vec3 clydePosition = glm::vec3(clydeModelMatrix[3]);
-            clydePosition.y = clydeYOffset;
-            glm::mat4 clydeRotation = glm::rotate(glm::mat4(1.0f), clydeRotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-            clydeModelMatrix = glm::translate(glm::mat4(1.0f), clydePosition) * clydeRotation;
+            
         }
 
         // ____________________________________________________________________________________________________________________________________________________________________________________________
@@ -788,11 +769,7 @@ class Pacman3D {
             gateHandler->indices = envGenerator.gateGenerator.getGateIndices();
 
 
-            pacmanModelHandler = std::make_shared<PacmanModelHandler>(
-                generateModelMatrix(pacmanModelStartingPosition, 0.0f, 0.0f, 0.0f, 0.2f),
-                "models/pacman1.obj",
-                "textures/pacman/pacman.png"
-            );
+            pacmanModelHandler->modifyModelMatrix(pacmanStartingPosition, glm::vec3(0.0f, 1.0f, 0.0f));
 
             auto blinkyHandler = std::make_shared<GhostGameModelHandler>(
                 ghosts.blinky,
@@ -1519,7 +1496,7 @@ class Pacman3D {
         void createGraphicsPipeline() {
 
             // Load the shaders;
-            auto vertShaderCode = readFile("shaders/Game/ShaderVert.spv");
+            auto vertShaderCode = readFile("shaders/Test/ShaderVert.spv");
             auto fragShaderCode = readFile("shaders/Game/ShaderFrag.spv");
 
             // Create shader modules for shaders loaded;
@@ -1622,8 +1599,6 @@ class Pacman3D {
             multisampling.pSampleMask = nullptr; // Optional
             multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
             multisampling.alphaToOneEnable = VK_FALSE; // Optional
-
-            // If depth or stencil buffer needed then put it here, but we won't use them in tutorial;
 
 
             // Color bending configuration;
@@ -2226,6 +2201,9 @@ class Pacman3D {
             ubo.proj = glm::perspective(glm::radians(60.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f); // Perspective proj;
             ubo.proj[1][1] *= -1; // OpenGL standard to Vulkan;
 
+            ubo.sunDireciton = glm::vec3(1.0f, 1.0f, 1.0f);
+            ubo.sunColor = glm::vec3(1.0f, 1.0f, 1.0f);
+
             memcpy(handler.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo)); // Copy the UBO in the uniform buffer;
         }
 
@@ -2634,7 +2612,7 @@ class Pacman3D {
 
                         vertex.color = { 1.0f, 1.0f, 1.0f };
 
-                        vertex.materialID = GHOST_MAT;
+                        vertex.materialID = FROM_FILE_MAT;
 
                         if (uniqueVertices.count(vertex) == 0) {
                             uniqueVertices[vertex] = static_cast<uint32_t>(uniqueVertices.size());
@@ -2777,7 +2755,7 @@ class Pacman3D {
 
 
 
-        // START 20 - hud ____________________________________________________________________________________________________________________________________________________________
+        // START 20 - HUD ____________________________________________________________________________________________________________________________________________________________
 
 
         // New vk variables for the hud;
@@ -2793,7 +2771,7 @@ class Pacman3D {
 
         std::vector<std::shared_ptr<ModelHandler>> hudModelHandlers;
 
-
+        // Use to create the hud;
         void createHUD() {
             loadHUDModelHandlers();
             initHUD();
@@ -3228,19 +3206,19 @@ class Pacman3D {
         void loadHUDModelHandlers() {
 
             std::vector<Vertex> hudVertices1 = {
-                { {-0.45f, -0.50f, -0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, 0},
-                { {0.45f, -0.50f, -0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, 0},
-                { {0.45f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, 0},
-                { {-0.45f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, 0}
+                { {-0.45f, -0.50f, -0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, HUD_MAT},
+                { {0.45f, -0.50f, -0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, HUD_MAT},
+                { {0.45f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, HUD_MAT},
+                { {-0.45f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, HUD_MAT}
             };
 
             std::vector<uint32_t> hudIndices1 = { 0, 1, 2, 2, 3, 0 };
 
             std::vector<Vertex> hudVertices2 = {
-                { {-0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, 0},
-                { {0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, 0},
-                { {0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, 0},
-                { {-0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, 0}
+                { {-0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, HUD_MAT},
+                { {0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, HUD_MAT},
+                { {0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, HUD_MAT},
+                { {-0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, HUD_MAT}
             };
 
             std::vector<uint32_t> hudIndices2 = { 0, 1, 2, 2, 3, 0 };

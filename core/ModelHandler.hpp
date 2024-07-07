@@ -96,13 +96,25 @@ class GhostGameModelHandler : public ModelHandler {
 
 class GhostMenuModelHandler : public ModelHandler {
 
-    glm::mat4* modelMatrix;
+    glm::mat4 initialMatrixTransf;
 
     public:
 
-        GhostMenuModelHandler(glm::mat4* modelMatrix, std::string modelPath, std::string texturePath) : modelMatrix(modelMatrix), ModelHandler(*modelMatrix, modelPath, texturePath) { }
+        GhostMenuModelHandler(glm::mat4 modelMatrix, std::string modelPath, std::string texturePath) : initialMatrixTransf(modelMatrix), ModelHandler(modelMatrix, modelPath, texturePath) { }
 
-        glm::mat4 getModelMatrix() override { return *modelMatrix; }
+        void modifyModelMatrix(glm::vec3 position, glm::vec3 front) {
+            glm::vec3 initialTranslation = glm::vec3(initialMatrixTransf[3]);
+            glm::vec3 translationDifference = position - initialTranslation + glm::vec3(0.0f, -10.0f, 0.0f);
+            glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translationDifference);
+
+            glm::vec3 currentForward = glm::normalize(glm::vec3(initialMatrixTransf[2]));
+            float currentAngle = atan2(currentForward.z, currentForward.x);
+            float targetAngle = atan2(front.z, front.x);
+            float angleDifference = targetAngle - currentAngle - glm::radians(90.0f);
+            glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), -angleDifference, glm::vec3(0.0f, 1.0f, 0.0f));
+
+            modelMatrix = translationMatrix * initialMatrixTransf * rotationMatrix;
+        }
 
 };
 
