@@ -37,6 +37,8 @@ class ModelHandler {
 
         glm::mat4 modelMatrix;
 
+        bool isActive = true;
+
         virtual glm::mat4 getModelMatrix() { return glm::mat4(1.0f); };
 
 };
@@ -53,19 +55,21 @@ class GameModelHandler : public ModelHandler {
 };
 
 
-class PacmanModelHandler : public ModelHandler {
+class CharacterMenuModelHandler : public ModelHandler {
 
     glm::mat4 initialMatrixTransf;
+    float yTranslation;
 
     public:
 
-        PacmanModelHandler(glm::mat4 modelMatrix, std::string modelPath, std::string texturePath) : ModelHandler(modelMatrix, modelPath, texturePath), initialMatrixTransf(modelMatrix) { }
+        CharacterMenuModelHandler(glm::mat4 modelMatrix, std::string modelPath, std::string texturePath, float initialY = 0.0f)
+            : ModelHandler(modelMatrix, modelPath, texturePath), initialMatrixTransf(modelMatrix), yTranslation(initialY) { }
 
         glm::mat4 getModelMatrix() override { return modelMatrix; }
 
         void modifyModelMatrix(glm::vec3 position, glm::vec3 front) {
             glm::vec3 initialTranslation = glm::vec3(initialMatrixTransf[3]);
-            glm::vec3 translationDifference = position - initialTranslation + glm::vec3(0.0f, -10.0f, 0.0f);
+            glm::vec3 translationDifference = position - initialTranslation + glm::vec3(0.0f, yTranslation, 0.0f);
             glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translationDifference);
 
             glm::vec3 currentForward = glm::normalize(glm::vec3(initialMatrixTransf[2]));
@@ -76,6 +80,12 @@ class PacmanModelHandler : public ModelHandler {
 
             modelMatrix = translationMatrix * initialMatrixTransf * rotationMatrix;
         }
+
+        void scaleModelMatrix(float scale) { initialMatrixTransf = glm::scale(initialMatrixTransf, glm::vec3(scale)); }
+
+        void rotateInitialModelMatrix(float angle, glm::vec3 axis) { initialMatrixTransf = glm::rotate(initialMatrixTransf, angle, axis); }
+
+        void rotateModelMatrix(float angle, glm::vec3 axis) { modelMatrix = glm::rotate(modelMatrix, glm::radians(angle), axis); }
 };
 
 
@@ -94,31 +104,6 @@ class GhostGameModelHandler : public ModelHandler {
 };
 
 
-class GhostMenuModelHandler : public ModelHandler {
-
-    glm::mat4 initialMatrixTransf;
-
-    public:
-
-        GhostMenuModelHandler(glm::mat4 modelMatrix, std::string modelPath, std::string texturePath) : initialMatrixTransf(modelMatrix), ModelHandler(modelMatrix, modelPath, texturePath) { }
-
-        void modifyModelMatrix(glm::vec3 position, glm::vec3 front) {
-            glm::vec3 initialTranslation = glm::vec3(initialMatrixTransf[3]);
-            glm::vec3 translationDifference = position - initialTranslation + glm::vec3(0.0f, -10.0f, 0.0f);
-            glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translationDifference);
-
-            glm::vec3 currentForward = glm::normalize(glm::vec3(initialMatrixTransf[2]));
-            float currentAngle = atan2(currentForward.z, currentForward.x);
-            float targetAngle = atan2(front.z, front.x);
-            float angleDifference = targetAngle - currentAngle - glm::radians(90.0f);
-            glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), -angleDifference, glm::vec3(0.0f, 1.0f, 0.0f));
-
-            modelMatrix = translationMatrix * initialMatrixTransf * rotationMatrix;
-        }
-
-};
-
-
 class PelletModelHandler : public ModelHandler {
 
     public:
@@ -129,6 +114,8 @@ class PelletModelHandler : public ModelHandler {
         PelletModelHandler(glm::mat4 modelMatrix, std::string texturePath, int i, int j) : ModelHandler(modelMatrix, texturePath), i(i), j(j), pointsWhenEaten(10.0f) { }
 
         glm::mat4 getModelMatrix() override { return modelMatrix; }
+
+        void translatePellet(glm::vec3 translation) { modelMatrix = glm::translate(modelMatrix, translation); }
 
 };
 

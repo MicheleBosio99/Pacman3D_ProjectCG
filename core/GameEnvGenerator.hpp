@@ -95,9 +95,7 @@ class MazeGenerator {
         }
 
         // Generate a random maze. Still doesn't works...
-        void generateRandomMaze() {
-
-        }
+        void generateRandomMaze() { }
 
         // Generate the maze mesh filling vertices and indices arrays;
         void generateMazeMesh() {
@@ -136,7 +134,7 @@ class MazeGenerator {
                         y_coord = y * wallSize - mazeCenterY;
 
                         // Create 8 vertices for the top and bottom of the wall;
-                        std::vector<Vertex> wallVertices = {
+                        /*std::vector<Vertex> wallVertices = {
                             // Bottom face;
                             { { x_coord + negX, 0.0f, y_coord + negY }, color, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 0.0f, y_coord + negY }, color, glm::vec2(0.25f, 0.0f), ENVIRONMENT_MAT },
@@ -147,8 +145,34 @@ class MazeGenerator {
                             { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(0.25f, 1.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(0.5f, 1.0f), ENVIRONMENT_MAT },
                             { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(0.75f, 1.0f), ENVIRONMENT_MAT } // Added all the , 0 to include the materialID of vertices for shader;
-                        };
+                        };*/
                         // This has a strange structure in the corners since it has the corner coming out, but it is hard to solve so I rather leave it like this;
+
+                        /*std::vector<Vertex> wallVertices = {
+                            // Bottom face;
+                            { { x_coord + negX, 0.0f, y_coord + negY }, color, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 0.0f, y_coord + negY }, color, glm::vec2(2.0f, 0.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 0.0f, y_coord + posY }, color, glm::vec2(4.0f, 0.0f), ENVIRONMENT_MAT },
+                            { { x_coord + negX, 0.0f, y_coord + posY }, color, glm::vec2(6.0f, 0.0f), ENVIRONMENT_MAT },
+                            // Top face;
+                            { { x_coord + negX, 2.0f, y_coord + negY }, color, glm::vec2(0.0f, 4.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(2.0f, 4.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(4.0f, 4.0f), ENVIRONMENT_MAT },
+                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(6.0f, 4.0f), ENVIRONMENT_MAT }
+                        };*/
+
+                        std::vector<Vertex> wallVertices = {
+                            // Bottom face;
+                            { { x_coord + negX, 0.0f, y_coord + negY }, color, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 0.0f, y_coord + negY }, color, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 0.0f, y_coord + posY }, color, glm::vec2(2.0f, 0.0f), ENVIRONMENT_MAT },
+                            { { x_coord + negX, 0.0f, y_coord + posY }, color, glm::vec2(3.0f, 0.0f), ENVIRONMENT_MAT },
+                            // Top face, horizontal UV coords;
+                            { { x_coord + negX, 2.0f, y_coord + negY }, color, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(2.0f, 2.0f), ENVIRONMENT_MAT },
+                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(3.0f, 2.0f), ENVIRONMENT_MAT }
+                        };
 
                         // Add the vertices to the mazeVertices vector;
                         for (const auto& vertex : wallVertices) { mazeVertices.push_back(vertex); }

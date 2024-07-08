@@ -25,7 +25,7 @@ class BillBoardGenerator {
         std::vector<uint32_t> billboardIndices;
         glm::vec3 position;
 
-        BillBoardGenerator(float billboardWidth = 7.65f, float billboardHeight = 2.0f, glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f))
+        BillBoardGenerator(float billboardWidth = 7.65f, float billboardHeight = 2.0f, glm::vec3 position = glm::vec3(0.0f, 1.2f, 0.0f))
             : billboardWidth(billboardWidth), billboardHeight(billboardHeight), position(position) { generateBillboardMesh(); }
 
         std::vector<Vertex> getBillboardVertices() { return billboardVertices; }
@@ -127,7 +127,7 @@ class StartingMenuEnvGenerator {
     public:
 
         BillBoardGenerator titleGenerator = BillBoardGenerator();
-        BillBoardGenerator spacebarGenerator = BillBoardGenerator(5.0f, 0.577f, glm::vec3(0.0f, -2.0f, 0.0f));
+        BillBoardGenerator spacebarGenerator = BillBoardGenerator(5.0f, 0.577f, glm::vec3(0.0f, -0.8f, 0.0f));
         MenuFloorGenerator floorGenerator = MenuFloorGenerator(0.0f, 20.0f);
 
 };

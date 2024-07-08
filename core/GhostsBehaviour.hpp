@@ -80,7 +80,6 @@ class Ghost {
         int distanceFromPacman = -1; // Distance found from the pacman (Manhattan);
         bool ghostGotPacman = false; // If the ghost got the pacman;
 
-
         glm::mat4 initialMatrixTransf; // Model matrix of initial state of ghost;
         glm::mat4 modelMatrix; // Multiplied to the model coordinates (vertices) makes it move in the space;
         glm::ivec2 frontDirection;
@@ -91,7 +90,6 @@ class Ghost {
 
         bool ghostGotEaten = false;
 
-        int i;
 
     public:
 
@@ -136,7 +134,7 @@ class Ghost {
             shortestPath = computeShortestPath(index, ghostsPositionsInMap);
             // printMazeWithPath(maze, shortestPath.path, index);
 
-            if (shortestPath.path.empty() || shortestPath.pathInWorld.empty() || shortestPath.directions.empty() || shortestPath.distance == -1) { return; i++;  std::cout << "Ret: " << i << std::endl; return; }
+            if (shortestPath.path.empty() || shortestPath.pathInWorld.empty() || shortestPath.directions.empty() || shortestPath.distance == -1) { return; }
 
             glm::ivec2 nextCellInMap = shortestPath.path[1];
             glm::vec3 nextCell = shortestPath.pathInWorld[1];
@@ -261,11 +259,23 @@ class Ghost {
         // Setter of ghost speedModifier;
         void setSpeedModifier(float speedModifier) { this->speedModifier = speedModifier; }
 
+        // Getter of ghost speedModifier;
+        float getSpeedModifier() { return speedModifier; }
+
         // Getter of ghost got eaten;
         bool didGhostGotEaten() { return ghostGotEaten; }
 
         // Setter of ghost got eaten;
         void setGhostGotEaten(bool ghostGotEaten) { this->ghostGotEaten = ghostGotEaten; }
+
+        // Setter of ghost mode duration;
+        void changeModeDuration(float duration) { modeDuration = duration; }
+
+        // Getter of ghost mode duration;
+        float getModeDuration() { return modeDuration; }
+
+        // Getter of ghost current speed;   
+        float getCurrentSpeed() { return currentSpeed; }
 
 
     private :
@@ -528,6 +538,22 @@ class GhostCollection {
             inky->stopGhostsSirenSounds();
             clyde->stopGhostsSirenSounds();
         }
+
+        void changeGhostsSpeedMod(float speedMod) {
+            blinky->setSpeedModifier(speedMod);
+            pinky->setSpeedModifier(speedMod);
+            inky->setSpeedModifier(speedMod);
+            clyde->setSpeedModifier(speedMod);
+        }
+
+        void changeGhostsModeDuration(float duration) {
+            blinky->changeModeDuration(duration);
+            pinky->changeModeDuration(duration);
+            inky->changeModeDuration(duration);
+            clyde->changeModeDuration(duration);
+        }
+
+
 
         bool checkIfGhostsGotPacman() { return blinky->didGhostGotPacman() || pinky->didGhostGotPacman() || inky->didGhostGotPacman() || clyde->didGhostGotPacman(); }
 };

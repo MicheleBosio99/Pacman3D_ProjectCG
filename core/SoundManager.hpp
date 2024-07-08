@@ -51,13 +51,13 @@ class SoundManager {
         }
 
         // Play a sound;
-        static void playSound(const std::string& name) {
+        static void playSound(const std::string& name, float volume = 1.0f) {
             checkInitialization();
 
             auto it = soundSources.find(name);
             if (it != soundSources.end()) {
                 auto sound = engine->play2D(it->second, false, false, true, false);
-                if(sound) { soundsPlaying[name] = sound; }
+                if (sound) { soundsPlaying[name] = sound; sound->setVolume(volume); }
             }
             else { std::cerr << "Error: Sound not found: " << name << std::endl; }
         }
