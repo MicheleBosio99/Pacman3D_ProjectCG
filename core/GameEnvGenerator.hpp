@@ -43,7 +43,7 @@ class MazeGenerator {
         std::vector<uint32_t> mazeIndices; // Indices connecting the vertices of the maze;
 
         // MazeGenerator constructor;
-        MazeGenerator(bool generateNewMaze = false, std::string filename = "resources/PacmanModifiedMaze.txt") {
+        MazeGenerator(bool generateNewMaze = false, std::string filename = "resources/TEST_PacmanModifiedMaze.txt") {
 
             if (!generateNewMaze) { loadMazeFromFile(filename); }
             else { generateRandomMaze(); }
@@ -125,10 +125,10 @@ class MazeGenerator {
                         if (x < maze.size() - 1 && maze[x + 1][y] == WALL) { posX = 1.0f; } // Down wall;
                         if (y < maze[0].size() - 1 && maze[x][y + 1] == WALL) { posY = 1.0f; } // Left wall;
 
-                        if(x == 0) { negX = 0.0f; } // Left limit;
+                        if (x == 0) { negX = 0.0f; } // Left limit;
                         else if (x == maze.size() - 1) { posX = 1.0f; } // Right limit;
-                        if(y == 0) { negY = 0.0f; } // Up limit;
-                        else if(y == maze[0].size() - 1) { posY = 1.0f; } // Down limit;
+                        if (y == 0) { negY = 0.0f; } // Up limit;
+                        else if (y == maze[0].size() - 1) { posY = 1.0f; } // Down limit;
 
                         x_coord = x * wallSize - mazeCenterX;
                         y_coord = y * wallSize - mazeCenterY;
@@ -140,11 +140,16 @@ class MazeGenerator {
                             { { x_coord + posX, 0.0f, y_coord + negY }, color, glm::vec2(0.25f, 0.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 0.0f, y_coord + posY }, color, glm::vec2(0.5f, 0.0f), ENVIRONMENT_MAT },
                             { { x_coord + negX, 0.0f, y_coord + posY }, color, glm::vec2(0.75f, 0.0f), ENVIRONMENT_MAT },
-                            // Top face;
+                            // Top face, vertical UV coords;
                             { { x_coord + negX, 2.0f, y_coord + negY }, color, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(0.25f, 1.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(0.5f, 1.0f), ENVIRONMENT_MAT },
-                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(0.75f, 1.0f), ENVIRONMENT_MAT } // Added all the , 0 to include the materialID of vertices for shader;
+                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(0.75f, 1.0f), ENVIRONMENT_MAT }, // Added all the , 0 to include the materialID of vertices for shader;
+                            // Top face, horizontal UV coords;
+                            { { x_coord + negX, 2.0f, y_coord + negY }, color, glm::vec2(x, y), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(x + 1, y), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(x + 1, y + 1), ENVIRONMENT_MAT },
+                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(x, y + 1), ENVIRONMENT_MAT }
                         };*/
                         // This has a strange structure in the corners since it has the corner coming out, but it is hard to solve so I rather leave it like this;
 
@@ -154,11 +159,16 @@ class MazeGenerator {
                             { { x_coord + posX, 0.0f, y_coord + negY }, color, glm::vec2(2.0f, 0.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 0.0f, y_coord + posY }, color, glm::vec2(4.0f, 0.0f), ENVIRONMENT_MAT },
                             { { x_coord + negX, 0.0f, y_coord + posY }, color, glm::vec2(6.0f, 0.0f), ENVIRONMENT_MAT },
-                            // Top face;
+                            // Top face, vertical UV coords;
                             { { x_coord + negX, 2.0f, y_coord + negY }, color, glm::vec2(0.0f, 4.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(2.0f, 4.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(4.0f, 4.0f), ENVIRONMENT_MAT },
-                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(6.0f, 4.0f), ENVIRONMENT_MAT }
+                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(6.0f, 4.0f), ENVIRONMENT_MAT },
+                            // Top face, horizontal UV coords;
+                            { { x_coord + negX, 2.0f, y_coord + negY }, color, glm::vec2(x, y), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(x + 1, y), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(x + 1, y + 1), ENVIRONMENT_MAT },
+                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(x, y + 1), ENVIRONMENT_MAT }
                         };*/
 
                         std::vector<Vertex> wallVertices = {
@@ -167,25 +177,26 @@ class MazeGenerator {
                             { { x_coord + posX, 0.0f, y_coord + negY }, color, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 0.0f, y_coord + posY }, color, glm::vec2(2.0f, 0.0f), ENVIRONMENT_MAT },
                             { { x_coord + negX, 0.0f, y_coord + posY }, color, glm::vec2(3.0f, 0.0f), ENVIRONMENT_MAT },
-                            // Top face, horizontal UV coords;
+                            // Top face, vertical UV coords;
                             { { x_coord + negX, 2.0f, y_coord + negY }, color, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
                             { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(2.0f, 2.0f), ENVIRONMENT_MAT },
-                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(3.0f, 2.0f), ENVIRONMENT_MAT }
+                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(3.0f, 2.0f), ENVIRONMENT_MAT },
+                            // Top face, horizontal UV coords;
+                            { { x_coord + negX, 2.0f, y_coord + negY }, color, glm::vec2(x, y), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + negY }, color, glm::vec2(x + 1, y), ENVIRONMENT_MAT },
+                            { { x_coord + posX, 2.0f, y_coord + posY }, color, glm::vec2(x + 1, y + 1), ENVIRONMENT_MAT },
+                            { { x_coord + negX, 2.0f, y_coord + posY }, color, glm::vec2(x, y + 1), ENVIRONMENT_MAT }
                         };
 
                         // Add the vertices to the mazeVertices vector;
                         for (const auto& vertex : wallVertices) { mazeVertices.push_back(vertex); }
 
                         // Get the index of the first vertex of this wall;
-                        uint32_t startIndex = static_cast<uint32_t>(mazeVertices.size() - 8);
+                        uint32_t startIndex = static_cast<uint32_t>(mazeVertices.size() - 12);
 
                         // Define the indices for the faces;
                         std::vector<uint32_t> wallIndices = {
-                            // Bottom face;
-                            startIndex, startIndex + 1, startIndex + 2, startIndex, startIndex + 2, startIndex + 3,
-                            // Top face;
-                            startIndex + 4, startIndex + 5, startIndex + 6, startIndex + 4, startIndex + 6, startIndex + 7,
                             // Front face;
                             startIndex, startIndex + 1, startIndex + 5, startIndex, startIndex + 5, startIndex + 4,
                             // Back face;
@@ -193,7 +204,9 @@ class MazeGenerator {
                             // Left face;
                             startIndex + 3, startIndex + 0, startIndex + 4, startIndex + 3, startIndex + 4, startIndex + 7,
                             // Right face;
-                            startIndex + 1, startIndex + 2, startIndex + 6, startIndex + 1, startIndex + 6, startIndex + 5
+                            startIndex + 1, startIndex + 2, startIndex + 6, startIndex + 1, startIndex + 6, startIndex + 5,
+                            // Top face;
+                            startIndex + 8, startIndex + 9, startIndex + 10, startIndex + 8, startIndex + 10, startIndex + 11
                         };
 
                         // Add the indices to the mazeIndices vector;
@@ -290,7 +303,7 @@ class FloorGenerator {
         std::vector<Vertex> floorVertices;
         std::vector<uint32_t> floorIndices;
 
-        FloorGenerator(float sideLength = 50.0f, int segments = 50, int textureRepeatCount = 50) : floorSide(sideLength), numOfSegments(segments), textureRepeatCount(textureRepeatCount) { generateFloorMesh(); }
+        FloorGenerator(float sideLength = 50.0f, int segments = 20, int textureRepeatCount = 20) : floorSide(sideLength), numOfSegments(segments), textureRepeatCount(textureRepeatCount) { generateFloorMesh(); }
 
         std::vector<Vertex> getFloorVertices() { return floorVertices; }
         std::vector<uint32_t> getFloorIndices() { return floorIndices; }

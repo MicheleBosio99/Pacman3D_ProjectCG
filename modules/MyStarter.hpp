@@ -333,6 +333,7 @@ class Pacman3D {
 
         GameEnvGenerator envGenerator; // Environment generator;
         StartingMenuEnvGenerator startingMenuEnvGenerator; // Starting menu environment generator;
+        GameOverEnvGenerator gameOverEnvGenerator; // Game over environment generator;
 
         GhostCollection ghosts = GhostCollection(envGenerator.mazeGenerator.getMaze()); // Enemy ghosts holder;
 
@@ -484,7 +485,7 @@ class Pacman3D {
                 movePacmanModel();
                 checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
-                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
+                // ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
                 checkForEndGame(); // Check if the game is over;
 
                 if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); } // If pacman got eaten then respawn him;
@@ -521,7 +522,9 @@ class Pacman3D {
 
             modelHandlers = gameOverModelHandlers;
 
-            while (!glfwWindowShouldClose(window) && !closeApp && appInGameOverScreen) {
+            float time = glfwGetTime(); // Show it for 3 seconds;
+
+            while (!glfwWindowShouldClose(window) && !closeApp && appInGameOverScreen && glfwGetTime() - time < 3.0f) {
 
                 closeAppOnEscPress(window);
                 drawFrame();
@@ -529,7 +532,6 @@ class Pacman3D {
             }
 
             appInGameOverScreen = false;
-
         }
 
         // ____________________________________________________________________________________________________________________________________________________________________________________________
@@ -810,9 +812,25 @@ class Pacman3D {
 
 			gameOverModelHandlers.clear();
 
+            auto wallpaper = std::make_shared<GameModelHandler>(
+                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f)),
+                "textures/filter_forge/GameOverWall.png"
+            );
+            wallpaper->vertices = gameOverEnvGenerator.gameOverWallpaperGenerator.getBillboardVertices();
+            wallpaper->indices = gameOverEnvGenerator.gameOverWallpaperGenerator.getBillboardIndices();
+
+            auto gameOverWrite = std::make_shared<GameModelHandler>(
+                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f)),
+                "textures/menus/GameOverPacmanAllBlack.png"
+            );
+            gameOverWrite->vertices = gameOverEnvGenerator.gameOverWriteGenerator.getBillboardVertices();
+            gameOverWrite->indices = gameOverEnvGenerator.gameOverWriteGenerator.getBillboardIndices();
+
+            gameOverModelHandlers.push_back(wallpaper);
+            gameOverModelHandlers.push_back(gameOverWrite);
+
 			generateModels(gameOverModelHandlers);
 		}
-
 
 
         // PACMAN GAME LOGIC; _________________________________________________________________________________________________________________________________________________________________________
@@ -826,14 +844,14 @@ class Pacman3D {
 
             auto labirinthHandler = std::make_shared<GameModelHandler>(
                 glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)),
-                "textures/filter_forge/PacmanFloor2.png" // "textures/filter_forge/PacmanWall2.png"
+                "textures/filter_forge/PacmanWall14_EpilecticAttackEdition.png" // "textures/filter_forge/PacmanWall14_EpilecticAttackEdition.png"
             );
             labirinthHandler->vertices = envGenerator.mazeGenerator.getMazeVertices();
             labirinthHandler->indices = envGenerator.mazeGenerator.getMazeIndices();
 
             auto floorHandler = std::make_shared<GameModelHandler>(
                 glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)),
-                "textures/filter_forge/PacmanFloor1.png"
+                "textures/filter_forge/PacmanFloor2.png"
             );
             floorHandler->vertices = envGenerator.floorGenerator.getFloorVertices();
             floorHandler->indices = envGenerator.floorGenerator.getFloorIndices();
@@ -1737,8 +1755,8 @@ class Pacman3D {
             VkPipelineColorBlendAttachmentState colorBlendAttachment{};
             colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
             colorBlendAttachment.blendEnable = VK_FALSE;
-            colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-            colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+            colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA; // Optional
+            colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // Optional
             colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
             colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
             colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional

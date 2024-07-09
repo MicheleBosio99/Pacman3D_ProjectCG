@@ -56,6 +56,42 @@ class BillBoardGenerator {
         }
 };
 
+
+class BillBoardRepeatedGenerator : public BillBoardGenerator {
+
+    public:
+
+		int repeatCount;
+
+		BillBoardRepeatedGenerator(float billboardWidth = 7.65f, float billboardHeight = 2.0f, glm::vec3 position = glm::vec3(0.0f, 1.2f, 0.0f), int repeatCount = 1)
+			: BillBoardGenerator(billboardWidth, billboardHeight, position), repeatCount(repeatCount) { generateBillboardMesh(); }
+
+	private:
+
+        void generateBillboardMesh() {
+
+            billboardVertices.clear();
+            billboardIndices.clear();
+
+            float halfWidth = billboardWidth / 2.0f;
+            float halfHeight = billboardHeight / 2.0f;
+
+            // Fill vertices vector;
+            std::vector<Vertex> billboardVerticesTemp = {
+                { { position.x, position.y - halfHeight, position.z + halfWidth }, color, glm::vec2(0.0f, repeatCount), ENVIRONMENT_MAT },
+                { { position.x, position.y - halfHeight, position.z - halfWidth }, color, glm::vec2(repeatCount, repeatCount), ENVIRONMENT_MAT },
+                { { position.x, position.y + halfHeight, position.z + halfWidth }, color, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                { { position.x, position.y + halfHeight, position.z - halfWidth }, color, glm::vec2(repeatCount, 0.0f), ENVIRONMENT_MAT }
+            };
+            for (const auto& vertex : billboardVerticesTemp) { billboardVertices.push_back(vertex); }
+
+            // Fill indices vector;
+            std::vector<uint32_t> billboardIndicesTemp = { 0, 1, 2, 1, 2, 3 };
+            for (const auto& index : billboardIndicesTemp) { billboardIndices.push_back(index); }
+        }
+};
+
+
 class MenuFloorGenerator {
 
     public:
@@ -121,6 +157,7 @@ class MenuFloorGenerator {
 
 };
 
+
 // Class to generate;
 class StartingMenuEnvGenerator {
 
@@ -129,6 +166,15 @@ class StartingMenuEnvGenerator {
         BillBoardGenerator titleGenerator = BillBoardGenerator();
         BillBoardGenerator spacebarGenerator = BillBoardGenerator(5.0f, 0.577f, glm::vec3(0.0f, -0.8f, 0.0f));
         MenuFloorGenerator floorGenerator = MenuFloorGenerator(0.0f, 20.0f);
+
+};
+
+class GameOverEnvGenerator {
+
+	public:
+
+        BillBoardRepeatedGenerator gameOverWallpaperGenerator = BillBoardRepeatedGenerator(32.0f, 32.0f, glm::vec3(-2.0f, 0.0f, 0.0f), 64);
+		BillBoardGenerator gameOverWriteGenerator = BillBoardGenerator(5.0f, 5.0f, glm::vec3(0.0f, 0.0f, 0.0f));
 
 };
 
