@@ -29,7 +29,7 @@ class SoundManager {
 
         // Initialize the sound manager;
         static bool initSoundManager() {
-            engine = irrklang::createIrrKlangDevice(irrklang::ESOD_AUTO_DETECT, irrklang::ESEO_DEFAULT_OPTIONS); // &~irrklang::ESEO_PRINT_DEBUG_INFO_TO_STDOUT);
+            engine = irrklang::createIrrKlangDevice(irrklang::ESOD_AUTO_DETECT, irrklang::ESEO_DEFAULT_OPTIONS &~irrklang::ESEO_PRINT_DEBUG_INFO_TO_STDOUT);
             if (!engine) { std::cerr << "Error: Could not initialize irrKlang Sound Engine." << std::endl; return false; }
 
             engine->setRolloffFactor(5.0f); // Set the logaritmic rolloff factor of 3d sounds;

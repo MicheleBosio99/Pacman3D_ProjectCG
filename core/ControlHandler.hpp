@@ -36,6 +36,8 @@ class ViewCameraControl {
         float mouseSensitivity; // Mouse sensitivity, could be make changeable in settings if they will ever be created;
         float fixedHeight; // Height at which the player camera is. It is fixed so to have a "walking" movement;
 
+        bool blockPitchMovement = false;
+
         // Constructor;
         ViewCameraControl(glm::vec3 startPosition, glm::vec3 startUp, float startYaw, float startPitch, float movementSpeed = 2.5f)
             : front(glm::vec3(0.0f, 0.0f, 1.0f)), movementSpeed(movementSpeed), mouseSensitivity(0.08f), fixedHeight(startPosition.y) {
@@ -85,7 +87,7 @@ class ViewCameraControl {
             yoffset *= mouseSensitivity;
 
             yaw += xoffset;
-            pitch += yoffset;
+            pitch += blockPitchMovement ? 0.0f : yoffset;
 
             if (constrainPitch) {
                 if (pitch > 89.0f) { pitch = 89.0f; }

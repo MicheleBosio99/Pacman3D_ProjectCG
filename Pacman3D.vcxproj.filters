@@ -764,12 +764,6 @@
     <ClInclude Include="core\SoundManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="modules\TextMaker.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="core\TextHandler.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="core\HUDRenderer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -43,10 +43,10 @@ class BillBoardGenerator {
 
             // Fill vertices vector;
             std::vector<Vertex> billboardVerticesTemp = {
-                { { position.x, position.y - halfHeight, position.z + halfWidth }, color, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT },
-                { { position.x, position.y - halfHeight, position.z - halfWidth }, color, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
-                { { position.x, position.y + halfHeight, position.z + halfWidth }, color, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-                { { position.x, position.y + halfHeight, position.z - halfWidth }, color, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT }
+                { { position.x, position.y - halfHeight, position.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT},
+                { { position.x, position.y - halfHeight, position.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
+                { { position.x, position.y + halfHeight, position.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                { { position.x, position.y + halfHeight, position.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT }
             };
             for (const auto& vertex : billboardVerticesTemp) { billboardVertices.push_back(vertex); }
 
@@ -78,10 +78,10 @@ class BillBoardRepeatedGenerator : public BillBoardGenerator {
 
             // Fill vertices vector;
             std::vector<Vertex> billboardVerticesTemp = {
-                { { position.x, position.y - halfHeight, position.z + halfWidth }, color, glm::vec2(0.0f, repeatCount), ENVIRONMENT_MAT },
-                { { position.x, position.y - halfHeight, position.z - halfWidth }, color, glm::vec2(repeatCount, repeatCount), ENVIRONMENT_MAT },
-                { { position.x, position.y + halfHeight, position.z + halfWidth }, color, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-                { { position.x, position.y + halfHeight, position.z - halfWidth }, color, glm::vec2(repeatCount, 0.0f), ENVIRONMENT_MAT }
+                { { position.x, position.y - halfHeight, position.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, repeatCount), ENVIRONMENT_MAT },
+                { { position.x, position.y - halfHeight, position.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(repeatCount, repeatCount), ENVIRONMENT_MAT },
+                { { position.x, position.y + halfHeight, position.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                { { position.x, position.y + halfHeight, position.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(repeatCount, 0.0f), ENVIRONMENT_MAT }
             };
             for (const auto& vertex : billboardVerticesTemp) { billboardVertices.push_back(vertex); }
 
@@ -94,87 +94,95 @@ class BillBoardRepeatedGenerator : public BillBoardGenerator {
 
 class MenuFloorGenerator {
 
-    public:
+public:
 
-        float floorSide;
-        int numOfSegments;
-        int textureRepeatCount;
-        float floorHeight = 0.0f;
+    float floorLengthX;
+    float floorLengthZ;
+    int numOfSegmentsX;
+    int numOfSegmentsZ;
+    int textureRepeatCountX;
+    int textureRepeatCountZ;
+    float floorHeight = 0.0f;
 
-        std::vector<Vertex> floorVertices;
-        std::vector<uint32_t> floorIndices;
+    std::vector<Vertex> floorVertices;
+    std::vector<uint32_t> floorIndices;
 
-        MenuFloorGenerator(float floorHeight = 0.0f, float sideLength = 50.0f, int segments = 50, int textureRepeatCount = 50)
-            : floorSide(sideLength), numOfSegments(segments), textureRepeatCount(textureRepeatCount) { generateFloorMesh(); }
+    MenuFloorGenerator(float floorHeight = 0.0f, float lengthX = 50.0f, float lengthZ = 50.0f, int segmentsX = 50, int segmentsZ = 50, int textureRepeatCountX = 50, int textureRepeatCountZ = 50)
+        : floorLengthX(lengthX), floorLengthZ(lengthZ), numOfSegmentsX(segmentsX), numOfSegmentsZ(segmentsZ), textureRepeatCountX(textureRepeatCountX), textureRepeatCountZ(textureRepeatCountZ) {
+        generateFloorMesh();
+    }
 
-        std::vector<Vertex> getFloorVertices() { return floorVertices; }
-        std::vector<uint32_t> getFloorIndices() { return floorIndices; }
+    std::vector<Vertex> getFloorVertices() { return floorVertices; }
+    std::vector<uint32_t> getFloorIndices() { return floorIndices; }
 
-    private:
+private:
 
-        void generateFloorMesh() {
+    void generateFloorMesh() {
 
-            floorVertices.clear();
-            floorIndices.clear();
+        floorVertices.clear();
+        floorIndices.clear();
 
-            float halfLength = floorSide / 2.0f;
-            float segmentSize = floorSide / numOfSegments;
+        float halfLengthX = floorLengthX / 2.0f;
+        float halfLengthZ = floorLengthZ / 2.0f;
+        float segmentSizeX = floorLengthX / numOfSegmentsX;
+        float segmentSizeZ = floorLengthZ / numOfSegmentsZ;
 
-            // Fill vertices vector;
-            for (int z = 0; z <= numOfSegments; z++) {
-                for (int x = 0; x <= numOfSegments; x++) {
+        // Fill vertices vector;
+        for (int z = 0; z <= numOfSegmentsZ; z++) {
+            for (int x = 0; x <= numOfSegmentsX; x++) {
 
-                    float xPos = -halfLength + x * segmentSize;
-                    float zPos = -halfLength + z * segmentSize;
+                float xPos = -halfLengthX + x * segmentSizeX;
+                float zPos = -halfLengthZ + z * segmentSizeZ;
 
-                    // Modified texture coordinates for repetition;
-                    float u = static_cast<float>(x) / numOfSegments * textureRepeatCount;
-                    float v = static_cast<float>(z) / numOfSegments * textureRepeatCount;
+                // Modified texture coordinates for repetition;
+                float u = static_cast<float>(x) / numOfSegmentsX * textureRepeatCountX;
+                float v = static_cast<float>(z) / numOfSegmentsZ * textureRepeatCountZ;
 
-                    floorVertices.push_back(Vertex{ {xPos, floorHeight, zPos}, color, {u, v}, ENVIRONMENT_MAT });
-                }
-            }
-
-            // Fill indices vector;
-            for (int z = 0; z < numOfSegments; z++) {
-                for (int x = 0; x < numOfSegments; x++) {
-
-                    int topLeft = (z * (numOfSegments + 1)) + x;
-                    int topRight = topLeft + 1;
-                    int bottomLeft = topLeft + (numOfSegments + 1);
-                    int bottomRight = bottomLeft + 1;
-
-                    floorIndices.push_back(topLeft);
-                    floorIndices.push_back(bottomLeft);
-                    floorIndices.push_back(topRight);
-
-                    floorIndices.push_back(topRight);
-                    floorIndices.push_back(bottomLeft);
-                    floorIndices.push_back(bottomRight);
-                }
+                floorVertices.push_back(Vertex{ {xPos, floorHeight, zPos}, color, { 0.0f, 1.0f, 0.0f }, {u, v}, ENVIRONMENT_MAT });
             }
         }
+
+        // Fill indices vector;
+        for (int z = 0; z < numOfSegmentsZ; z++) {
+            for (int x = 0; x < numOfSegmentsX; x++) {
+
+                int topLeft = (z * (numOfSegmentsX + 1)) + x;
+                int topRight = topLeft + 1;
+                int bottomLeft = topLeft + (numOfSegmentsX + 1);
+                int bottomRight = bottomLeft + 1;
+
+                floorIndices.push_back(topLeft);
+                floorIndices.push_back(bottomLeft);
+                floorIndices.push_back(topRight);
+
+                floorIndices.push_back(topRight);
+                floorIndices.push_back(bottomLeft);
+                floorIndices.push_back(bottomRight);
+            }
+        }
+    }
 
 };
 
 
-// Class to generate;
+
 class StartingMenuEnvGenerator {
 
     public:
 
         BillBoardGenerator titleGenerator = BillBoardGenerator();
         BillBoardGenerator spacebarGenerator = BillBoardGenerator(5.0f, 0.577f, glm::vec3(0.0f, -0.8f, 0.0f));
-        MenuFloorGenerator floorGenerator = MenuFloorGenerator(0.0f, 20.0f);
+        MenuFloorGenerator floorGenerator = MenuFloorGenerator(0.0f, 20.0f, 50.0f, 5, 10, 5, 10);
 
 };
+
 
 class GameOverEnvGenerator {
 
 	public:
 
-        BillBoardRepeatedGenerator gameOverWallpaperGenerator = BillBoardRepeatedGenerator(32.0f, 32.0f, glm::vec3(-2.0f, 0.0f, 0.0f), 64);
-		BillBoardGenerator gameOverWriteGenerator = BillBoardGenerator(5.0f, 5.0f, glm::vec3(0.0f, 0.0f, 0.0f));
+        BillBoardRepeatedGenerator gameOverWallpaperGenerator = BillBoardRepeatedGenerator(32.0f, 32.0f, glm::vec3(-2.0f, 0.0f, 0.0f), 32);
+		BillBoardGenerator gameOverWriteGenerator = BillBoardGenerator(18.0f, 3.0f, glm::vec3(0.0f, 0.0f, 0.0f));
 
 };
 

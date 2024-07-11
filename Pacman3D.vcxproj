@@ -151,7 +151,6 @@
     <ClInclude Include="core\HUDRenderer.hpp" />
     <ClInclude Include="core\SoundManager.hpp" />
     <ClInclude Include="core\StartingMenuEnvGenerator.hpp" />
-    <ClInclude Include="core\TextHandler.hpp" />
     <ClInclude Include="headers\glm\common.hpp" />
     <ClInclude Include="headers\glm\detail\compute_common.hpp" />
     <ClInclude Include="headers\glm\detail\compute_vector_relational.hpp" />
@@ -394,7 +393,6 @@
     <ClInclude Include="headers\tiny_gltf.h" />
     <ClInclude Include="headers\tiny_obj_loader.h" />
     <ClInclude Include="modules\MyStarter.hpp" />
-    <ClInclude Include="modules\TextMaker.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="headers\glm\detail\func_common.inl" />
