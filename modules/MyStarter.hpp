@@ -363,8 +363,10 @@ class Pacman3D {
         bool pacmanDefeated = false; // Has pacman been eaten?;
         bool isGameFinished = false; // Is the game finished?;
         bool hasPlayerWonCurrLevel = false; // Has the player won the game?;
-        int livesLeft = 3; // Pacman lives;
-        int level = 1; // Current level;
+        int livesMax = 3;
+        int livesLeft; // Pacman lives;
+        int lastLevel = 3; // Last level;
+        int currentLevel = 1; // Current level;
 
         std::vector<std::shared_ptr<ModelHandler>> modelHandlers; // Hold the model handlers used in the current scene;
         std::vector<std::shared_ptr<ModelHandler>> startingMenuModelHandlers; // Hold all model handlers for the starting menu;
@@ -391,8 +393,9 @@ class Pacman3D {
         // Main game loop, contains starting menu screen, game screen and game over screen. When game over then back to the menu;
         void gameLoop() {
             appInStartedScreen = true;
+            livesLeft = livesMax;
 
-            showHUD();
+            showHUD(); // Does nothing for now;
             loadAllModels(); // Make it run in parallel -> Why tf futures do not work??;
 
             while (!glfwWindowShouldClose(window) && !closeApp) {
@@ -419,14 +422,11 @@ class Pacman3D {
 
             createHUD();
             return;
+            //return;
 
             while (!glfwWindowShouldClose(window) && !closeApp) {
 
                 float currentFrame = glfwGetTime(); deltaTime = currentFrame - lastFrame; lastFrame = currentFrame;
-
-                // std::cout << viewCamera.position.x << " " << viewCamera.position.y << " " << viewCamera.position.z << " - ";
-                // std::cout << viewCamera.front.x << " " << viewCamera.front.y << " " << viewCamera.front.z << ";" << std::endl;
-
 
                 closeAppOnEscPress(window);
                 drawFrame();
@@ -503,7 +503,7 @@ class Pacman3D {
                 movePacmanModel();
                 checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
-                // ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
+                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
                 checkForEndGame(); // Check if the game is over;
 
                 if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); } // If pacman got eaten then respawn him;
@@ -555,7 +555,7 @@ class Pacman3D {
 
             float time = glfwGetTime(); // Show it for 3 seconds;
 
-            while (!glfwWindowShouldClose(window) && !closeApp && appInGameOverScreen && glfwGetTime() - time < 5.0f) {
+            while (!glfwWindowShouldClose(window) && !closeApp && appInGameOverScreen && glfwGetTime() - time < 5.2f) {
 
                 appInGameOverScreen = !checkSpaceBarPressed(window);
                 closeAppOnEscPress(window);
@@ -881,13 +881,13 @@ class Pacman3D {
 			generateModels(gameOverModelHandlers);
 		}
 
-
+        // Reset the game after game over;
         void resetGameAfterGameOver() {
             playerLevelScore = 0.0f;
             playerScore = 0.0f;
-            level = 1;
+            currentLevel = 1;
             ghosts = GhostCollection(envGenerator.mazeGenerator.getMaze());
-            livesLeft = 3;
+            livesLeft = livesMax;
             powerPelletEaten = 0;
 
             for (auto& modelRow : pelletsInMaze) {
@@ -896,6 +896,9 @@ class Pacman3D {
                     eaten = false;
                 }
             }
+
+            auto positions = livesPosition[livesLeft];
+            for (int i = 0; i < livesLeft; i ++) { livesModels[i]->modelMatrix = generateModelMatrix(positions[i], 90.0, 0.0f, 0.0f, 0.035f); }
 
             viewCamera.blockPitchMovement = false;
             howManyPelletsLeft = totalPellets;
@@ -1005,6 +1008,7 @@ class Pacman3D {
             gameModelHandlers.push_back(clydeHandler);
 
             addPelletsModelsToScene();
+            addLivesModelToScene();
 
             generateModels(gameModelHandlers); // 4.73907 seconds to load these fuckers;
         }
@@ -1060,6 +1064,42 @@ class Pacman3D {
                     }
                 }
             }
+        }
+
+        // Variable with lives positions;
+        std::unordered_map<int, std::vector<glm::vec3>> livesPosition = {
+			{ 0, {} },
+            { 1, { glm::vec3(7.95f, 0.55f, 0.0f) } },
+			{ 2, { glm::vec3(7.95f, 0.55f, -0.1f), glm::vec3(7.95f, 0.55f, 0.1f) } },
+			{ 3, { glm::vec3(7.95f, 0.55f, -0.2f), glm::vec3(7.95f, 0.55f, 0.0f), glm::vec3(7.95f, 0.55f, 0.2f) } },
+            { 4, { glm::vec3(7.95f, 0.55f, -0.3f), glm::vec3(7.95f, 0.55f, -0.1f), glm::vec3(7.95f, 0.55f, 0.1f), glm::vec3(7.95f, 0.55f, 0.3f) } },
+            { 5, { glm::vec3(7.95f, 0.55f, -0.4f), glm::vec3(7.95f, 0.55f, -0.2f), glm::vec3(7.95f, 0.55f, 0.0f), glm::vec3(7.95f, 0.55f, 0.2f), glm::vec3(7.95f, 0.55f, 0.4f) } },
+            { 6, { glm::vec3(7.95f, 0.55f, -0.5f), glm::vec3(7.95f, 0.55f, -0.3f), glm::vec3(7.95f, 0.55f, -0.1f), glm::vec3(7.95f, 0.55f, 0.1f), glm::vec3(7.95f, 0.55f, 0.3f), glm::vec3(7.95f, 0.55f, 0.5f) } }
+        };
+        std::vector<std::shared_ptr<ModelHandler>> livesModels;
+        
+
+        // Add lives models to the scene;
+        void addLivesModelToScene() {
+            auto positions = livesPosition[livesLeft];
+            for (const auto& position : positions) {
+				auto lifeHandler = std::make_shared<CharacterMenuModelHandler>(
+                    generateModelMatrix(position, 90.0, 0.0f, 0.0f, 0.035f),
+                    "models/lowPolyHeart.obj",
+					"textures/details/LowPolyHeart.png"
+				);
+				gameModelHandlers.push_back(lifeHandler);
+                livesModels.push_back(lifeHandler);
+			}
+
+            auto ppSignLives = GateGenerator(0.75f, 0.18f, 0.1f);
+            auto lifeSignHandler = std::make_shared<GameModelHandler>(
+                glm::translate(glm::mat4(1.0f), glm::vec3(7.82f, 0.72f, 0.0f)),
+                "textures/menus/LivesLeft.png" 
+            );
+            lifeSignHandler->vertices = ppSignLives.gateVertices;
+            lifeSignHandler->indices = ppSignLives.gateIndices;
+            gameModelHandlers.push_back(lifeSignHandler);
         }
 
         // Check if player collided with walls;
@@ -1242,6 +1282,7 @@ class Pacman3D {
         // Handle pacman defeat;
         void pacmanGotEaten() {
             livesLeft--;
+
             if (playerInHighView) { playerInHighView = false; }
 
             if (livesLeft == 0) { isGameFinished = true; }
@@ -1261,14 +1302,28 @@ class Pacman3D {
 
                 ghosts.resetAfterEatingPacman(8);
                 pacmanDefeated = false;
+
+                moveLivesModels();
+            }
+        }
+
+        // Repositions lifes models when their number changes;
+        void moveLivesModels() {
+            auto lifeModel = livesModels[livesLeft];
+
+            lifeModel->modelMatrix = glm::translate(lifeModel->modelMatrix, glm::vec3(0.0f, -100.0f, 0.0f));
+
+            auto positions = livesPosition[livesLeft];
+            for (int i = 0; i < livesLeft; i ++) {
+                livesModels[i]->modelMatrix = generateModelMatrix(positions[i], 90.0, 0.0f, 0.0f, 0.035f);
             }
         }
 
         // Handle finishing a level and starting a new one;
         void setUpNewLevel() {
-			level++;
+			currentLevel++;
 
-			if (level == 3) { isGameFinished = true; }
+			if (currentLevel == lastLevel) { isGameFinished = true; }
 			else {
 				SoundManager::playSound("pacman_respawn");
                 viewCamera.reInitializateAll(
@@ -1294,7 +1349,7 @@ class Pacman3D {
                 playerScore += playerLevelScore;
                 playerLevelScore = 0.0f;
 
-                ghosts.changeGhostsSpeedMod(ghosts.blinky->getSpeedModifier() + level * 1.0f);
+                ghosts.changeGhostsSpeedMod(ghosts.blinky->getSpeedModifier() + currentLevel * 1.0f);
                 ghosts.changeGhostsModeDuration(ghosts.blinky->getModeDuration() - 0.5f);
 
                 ghosts.changeGhostsState(NORMAL);
@@ -1414,8 +1469,6 @@ class Pacman3D {
             createInfo.enabledExtensionCount = glfwExtensionCount;
             createInfo.ppEnabledExtensionNames = glfwExtensions;
 
-            createInfo.enabledLayerCount = 0;
-
             // OPTIONAL - Retrieve a list of supported extension;
             uint32_t extensionCount = 0;
             vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -1446,6 +1499,33 @@ class Pacman3D {
                 if (!layerFound) { return false; }
             }
             return true;
+        }
+
+        static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+
+            std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl;
+
+            return VK_FALSE;
+        }
+
+        // Create the debug messenger
+        void setupDebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT& debugMessenger) {
+            if (!enableValidationLayers) return;
+
+            VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+            createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+            createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+            createInfo.pfnUserCallback = debugCallback;
+
+            if (vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+                throw std::runtime_error("failed to set up debug messenger!");
+            }
         }
 
 
@@ -2412,7 +2492,7 @@ class Pacman3D {
             if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor set layout!"); }
         }
 
-
+        // Create uniform buffers;
         void createUniformBuffers(ModelHandler& handler) {
             VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -2427,7 +2507,7 @@ class Pacman3D {
             }
         }
 
-        // Update uniform buffer by rotating the rectangle by 90 degrees every second;
+        // Update uniform buffer;
         void updateUniformBuffer(ModelHandler& handler, uint32_t currentImage) {
 
             UniformBufferObject ubo { };
@@ -2443,7 +2523,7 @@ class Pacman3D {
             if (appInStartedScreen) { ubo.lightDirection = glm::vec3(1.0f, 1.0f, 0.0f); } // Why does the light change orientation when ghosts rotate...?? TODO;
             else { ubo.lightDirection = glm::vec3(0.0f, 1.0f, 0.0f); }
 
-            ubo.lightColor = glm::vec3(1.0f, 1.0f, 1.0f); // Ambient light color;
+            ubo.lightColor = glm::vec3(1.0f, 1.0f, 1.0f); // Ambient light color; TODO;
 
             ubo.viewerPos = viewCamera.position; // Viewer eyes position;
 
@@ -3067,7 +3147,7 @@ class Pacman3D {
             colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // Store the rendered content;
             colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // Assuming hud is rendered last;
+            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Assuming hud is rendered last;
             colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
             VkAttachmentReference colorAttachmentRef = {};
@@ -3103,17 +3183,26 @@ class Pacman3D {
         // Create the hud descriptor set layout;
         void createHUDDescriptorSetLayout() {
 
-            VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-            samplerLayoutBinding.binding = 0;
-            samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            samplerLayoutBinding.descriptorCount = 1;
-            samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional;
+            VkDescriptorSetLayoutBinding uboLayoutBinding{};
+            uboLayoutBinding.binding = 0;
+            uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            uboLayoutBinding.descriptorCount = 1; // Values in array of uniform buffer objects;
+            uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // What stage is it referenced in;
+            uboLayoutBinding.pImmutableSamplers = nullptr; // Optional - only for image sampling;
 
-            VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+            VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+            samplerLayoutBinding.binding = 1;
+            samplerLayoutBinding.descriptorCount = 1;
+            samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            samplerLayoutBinding.pImmutableSamplers = nullptr;
+            samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+            std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+
+            VkDescriptorSetLayoutCreateInfo layoutInfo{};
             layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            layoutInfo.bindingCount = 1;
-            layoutInfo.pBindings = &samplerLayoutBinding;
+            layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+            layoutInfo.pBindings = bindings.data();
 
             if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &hudDescriptorSetLayout) != VK_SUCCESS) { throw std::runtime_error("failed to create descriptor set layout!"); }
         }
@@ -3341,19 +3430,19 @@ class Pacman3D {
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(handler.indices.size()), 1, 0, 0, 0);
             }
 
-            VkViewport viewport = {};
+            VkViewport viewport{};
             viewport.x = 0.0f;
             viewport.y = 0.0f;
             viewport.width = static_cast<float>(swapChainExtent.width);
             viewport.height = static_cast<float>(swapChainExtent.height);
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
+            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-            VkRect2D scissor = {};
+            VkRect2D scissor{};
             scissor.offset = { 0, 0 };
             scissor.extent = swapChainExtent;
-
-            vkCmdSetDepthTestEnable(commandBuffer, VK_FALSE);
+            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
             // Enable alpha blending
             VkPipelineColorBlendAttachmentState colorBlendAttachment{};
@@ -3451,6 +3540,10 @@ class Pacman3D {
 
             ubo.proj[1][1] *= -1; // OpenGL standard to Vulkan;
 
+            ubo.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+            ubo.lightDirection = glm::vec3(0.0f, 0.0f, 0.0f);
+            ubo.viewerPos = glm::vec3(0.0f, 0.0f, 0.0f);
+
             memcpy(handler.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
         }
 
@@ -3458,32 +3551,36 @@ class Pacman3D {
         void loadHUDModelHandlers() {
 
             std::vector<Vertex> hudVertices1 = {
-                { {-0.45f, -0.50f, -0.0f}, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, HUD_MAT},
-                { {0.45f, -0.50f, -0.0f}, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {1.0f, 0.0f}, HUD_MAT},
-                { {0.45f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {1.0f, 1.0f}, HUD_MAT},
-                { {-0.45f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {0.0f, 1.0f}, HUD_MAT}
+                { {-0.5f, -0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, HUD_MAT},
+                { {0.5f, -0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {1.0f, 0.0f}, HUD_MAT},
+                { {0.5f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {1.0f, 1.0f}, HUD_MAT},
+                { {-0.5f, 0.50f, 0.0f}, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {0.0f, 1.0f}, HUD_MAT}
             };
 
             std::vector<uint32_t> hudIndices1 = { 0, 1, 2, 2, 3, 0 };
 
             std::vector<Vertex> hudVertices2 = {
-                { {-0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {0.0f, 0.0f}, HUD_MAT},
-                { {0.45f, -0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {1.0f, 0.0f}, HUD_MAT},
-                { {0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {1.0f, 1.0f}, HUD_MAT},
-                { {-0.45f, 0.45f, 0.0f }, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {0.0f, 1.0f}, HUD_MAT}
+                { {-0.5f, 0.0f, -0.5f }, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {0.0f, 0.0f}, HUD_MAT},
+                { {0.5f, 0.0f, -0.5f }, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {1.0f, 0.0f}, HUD_MAT},
+                { {0.5f, 0.0f, 0.5f }, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {1.0f, 1.0f}, HUD_MAT},
+                { {-0.5f, 0.0f, 0.5f }, {1.0f, 1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, {0.0f, 1.0f}, HUD_MAT}
             };
 
             std::vector<uint32_t> hudIndices2 = { 0, 1, 2, 2, 3, 0 };
 
-            auto rectangle1Handler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/HUD_Test.png");
+            auto rectangle1Handler = std::make_shared<GameModelHandler>(
+                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)),
+                "textures/test/HUD_Test.png"
+            );
             rectangle1Handler->vertices = hudVertices1;
             rectangle1Handler->indices = hudIndices1;
-            rectangle1Handler->isActive = false;
 
-            auto rectangle2Handler = std::make_shared<GameModelHandler>(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), "textures/test/HUD_Test.png");
+            auto rectangle2Handler = std::make_shared<GameModelHandler>(
+                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)),
+                "textures/test/HUD_Test.png"
+            );
             rectangle2Handler->vertices = hudVertices2;
             rectangle2Handler->indices = hudIndices2;
-            rectangle2Handler->isActive = false;
 
             hudModelHandlers.push_back(rectangle1Handler);
             hudModelHandlers.push_back(rectangle2Handler);

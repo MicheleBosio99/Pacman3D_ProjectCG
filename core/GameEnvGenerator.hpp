@@ -342,6 +342,7 @@ class TeleporterGenerator {
 
         float teleporterWidth = 1.3f;
         float teleporterHeight = 2.0f;
+        float teleporterDepth = 0.1f;
         glm::vec3 teleporterPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 
         std::vector<Vertex> teleporterVertices;
@@ -360,18 +361,31 @@ class TeleporterGenerator {
             teleporterIndices.clear();
 
             float halfWidth = teleporterWidth / 2.0f;
+            float halfDepth = teleporterDepth / 2.0f;
 
             // Fill vertices vector;
             std::vector<Vertex> teleporterVerticesTemp = {
-                { { teleporterPosition.x + halfWidth, teleporterPosition.y, teleporterPosition.z }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
-                { { teleporterPosition.x - halfWidth, teleporterPosition.y, teleporterPosition.z }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-                { { teleporterPosition.x + halfWidth, teleporterPosition.y + teleporterHeight, teleporterPosition.z }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
-                { { teleporterPosition.x - halfWidth, teleporterPosition.y + teleporterHeight, teleporterPosition.z }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT }
+                { { teleporterPosition.x + halfWidth, teleporterPosition.y, teleporterPosition.z - teleporterDepth }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                { { teleporterPosition.x - halfWidth, teleporterPosition.y, teleporterPosition.z - teleporterDepth }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                { { teleporterPosition.x + halfWidth, teleporterPosition.y + teleporterHeight, teleporterPosition.z - teleporterDepth }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
+                { { teleporterPosition.x - halfWidth, teleporterPosition.y + teleporterHeight, teleporterPosition.z - teleporterDepth }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT },
+
+                { { teleporterPosition.x + halfWidth, teleporterPosition.y, teleporterPosition.z }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                { { teleporterPosition.x - halfWidth, teleporterPosition.y, teleporterPosition.z }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                { { teleporterPosition.x + halfWidth, teleporterPosition.y + teleporterHeight, teleporterPosition.z }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
+                { { teleporterPosition.x - halfWidth, teleporterPosition.y + teleporterHeight, teleporterPosition.z }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT }
             };
             for (const auto& vertex : teleporterVerticesTemp) { teleporterVertices.push_back(vertex); }
 
             // Fill indices vector;
-            std::vector<uint32_t> teleporterIndicesTemp = { 0, 1, 2, 1, 2, 3 };
+            std::vector<uint32_t> teleporterIndicesTemp = {
+                0, 1, 2, 1, 2, 3,
+                4, 5, 6, 5, 6, 7,
+                0, 4, 2, 4, 2, 6,
+                1, 5, 3, 5, 3, 7,
+                0, 1, 4, 1, 4, 5,
+                2, 3, 6, 3, 6, 7
+            };
             for (const auto& index : teleporterIndicesTemp) { teleporterIndices.push_back(index); }
         }
 };
@@ -381,13 +395,14 @@ class GateGenerator {
 
     public:
 
-        float gateWidth = 2.3f;
-        float gateHeight = 1.5f;
+        float gateWidth;
+        float gateHeight;
+        float gateDepth;
 
         std::vector<Vertex> gateVertices;
         std::vector<uint32_t> gateIndices;
 
-        GateGenerator() { generateGateMesh(); }
+        GateGenerator(float gateWidth, float gateHeight, float gateDepth) : gateWidth(gateWidth), gateHeight(gateHeight), gateDepth(gateDepth) { generateGateMesh(); }
 
         std::vector<Vertex> getGateVertices() { return gateVertices; }
         std::vector<uint32_t> getGateIndices() { return gateIndices; }
@@ -395,29 +410,40 @@ class GateGenerator {
     private:
 
         void generateGateMesh() {
-
             gateVertices.clear();
             gateIndices.clear();
 
             glm::vec3 gatePosition(0.0f, 0.0f, 0.0f);
             float halfWidth = gateWidth / 2.0f;
+            float halfDepth = gateDepth / 2.0f;
 
-            // Fill vertices vector;
-            std::vector<Vertex> gateVerticesTemp = {
-                { { gatePosition.x, gatePosition.y, gatePosition.z + halfWidth }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT},
-                { { gatePosition.x, gatePosition.y, gatePosition.z - halfWidth }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-                { { gatePosition.x, gatePosition.y + gateHeight, gatePosition.z + halfWidth }, color,  { -1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
-                { { gatePosition.x, gatePosition.y + gateHeight, gatePosition.z - halfWidth }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT }
+            std::vector<Vertex> vertices = {
+                { { gatePosition.x - halfDepth, gatePosition.y, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT},
+                { { gatePosition.x - halfDepth, gatePosition.y, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                { { gatePosition.x - halfDepth, gatePosition.y + gateHeight, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, -1.0f), ENVIRONMENT_MAT },
+                { { gatePosition.x - halfDepth, gatePosition.y + gateHeight, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, -1.0f), ENVIRONMENT_MAT },
+
+                { { gatePosition.x + halfDepth, gatePosition.y, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT},
+                { { gatePosition.x + halfDepth, gatePosition.y, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                { { gatePosition.x + halfDepth, gatePosition.y + gateHeight, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, -1.0f), ENVIRONMENT_MAT },
+                { { gatePosition.x + halfDepth, gatePosition.y + gateHeight, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, -1.0f), ENVIRONMENT_MAT }
             };
-            for (const auto& vertex : gateVerticesTemp) { gateVertices.push_back(vertex); }
 
-            // Fill indices vector;
-            std::vector<uint32_t> gateIndicesTemp = { 0, 1, 2, 1, 2, 3 };
+            for (const auto& vertex : vertices) { gateVertices.push_back(vertex); }
+
+            std::vector<uint32_t> gateIndicesTemp = {
+                0, 1, 2, 1, 2, 3,
+                4, 5, 6, 5, 6, 7,
+                0, 4, 2, 4, 2, 6,
+                1, 5, 3, 5, 3, 7,
+                0, 1, 4, 1, 4, 5,
+                2, 3, 6, 3, 6, 7
+            };
             for (const auto& index : gateIndicesTemp) { gateIndices.push_back(index); }
         }
 };
 
-// Normal pellet generator class for pellets;
+// Pellet generator class for pellets;
 class PelletGenerator {
 
     public:
@@ -501,7 +527,7 @@ class GameEnvGenerator {
         FloorGenerator floorGenerator;
         SkyGenerator skyGenerator;
         TeleporterGenerator teleporterGenerator;
-        GateGenerator gateGenerator;
+        GateGenerator gateGenerator = GateGenerator(2.3f, 1.5f, 0.15f);
 
 };
 
