@@ -76,13 +76,15 @@ void main() {
 
     if (fragMaterialID == PELLET_MAT) {
         vec3 emissionColor = vec3(0.0f, 0.8f, 0.0f);
-        float roughness = 0.25f;
+        float roughness = 0.001f;
         // vec3 diffuse = orenNayarDiffuse(surfaceColor, normal, lightDir, viewDir, roughness);
         // vec3 specular = cookTorranceSpecular(surfaceColor, normal, lightDir, viewDir, roughness);
         vec3 diffuse = lambertDiffuse(surfaceColor, normal, lightDir);
         vec3 specular = blinnPhongSpecular(surfaceColor, normal, lightDir, viewDir);
 
         resultColor = diffuse + specular + emissionColor;
+    } else if (fragMaterialID == HUD_MAT) {
+        resultColor = surfaceColor * fragColor;
     } else {
         vec3 diffuse = lambertDiffuse(surfaceColor, normal, lightDir);
         vec3 specular = blinnPhongSpecular(surfaceColor, normal, lightDir, viewDir);

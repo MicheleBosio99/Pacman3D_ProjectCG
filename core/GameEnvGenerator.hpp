@@ -43,7 +43,7 @@ class MazeGenerator {
         std::vector<uint32_t> mazeIndices; // Indices connecting the vertices of the maze;
 
         // MazeGenerator constructor;
-        MazeGenerator(bool generateNewMaze = false, std::string filename = "resources/PacmanModifiedMaze.txt") {
+        MazeGenerator(bool generateNewMaze = false, std::string filename = "resources/TEST_PacmanModifiedMaze.txt") {
 
             if (!generateNewMaze) { loadMazeFromFile(filename); }
             else { generateRandomMaze(); }
