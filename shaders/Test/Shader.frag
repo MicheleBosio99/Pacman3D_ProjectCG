@@ -40,22 +40,22 @@ vec3 blinnPhongSpecular(vec3 albedo, vec3 normal, vec3 lightDir, vec3 viewDir) {
     return albedo * ubo.lightColor * pow(NdotH, shininess);
 }
 
-// vec3 orenNayarDiffuse(vec3 albedo, vec3 normal, vec3 lightDir, vec3 viewDir, float roughness) {
-//     // float sigma2 = roughness * roughness;
-//     // float A = 1.0 - 0.5 * (sigma2 / (sigma2 + 0.33));
-//     // float B = 0.45 * (sigma2 / (sigma2 + 0.09));
+vec3 orenNayarDiffuse(vec3 albedo, vec3 normal, vec3 lightDir, vec3 viewDir, float roughness) {
+    float sigma2 = roughness * roughness;
+    float A = 1.0 - 0.5 * (sigma2 / (sigma2 + 0.33));
+    float B = 0.45 * (sigma2 / (sigma2 + 0.09));
 
-//     // float NdotL = max(dot(normal, lightDir), 0.0);
-//     // float NdotV = max(dot(normal, viewDir), 0.0);
-//     // float thetaI = acos(NdotL);
-//     // float thetaR = acos(NdotV);
+    float NdotL = max(dot(normal, lightDir), 0.0);
+    float NdotV = max(dot(normal, viewDir), 0.0);
+    float thetaI = acos(NdotL);
+    float thetaR = acos(NdotV);
 
-//     // float alpha = max(thetaI, thetaR);
-//     // float beta = min(thetaI, thetaR);
+    float alpha = max(thetaI, thetaR);
+    float beta = min(thetaI, thetaR);
 
-//     // float C = sin(alpha) * tan(beta);
-//     // return albedo * ubo.lightColor * NdotL * (A + B * max(0.0, cos(thetaI - thetaR)) * C);
-// }
+    float C = sin(alpha) * tan(beta);
+    return albedo * ubo.lightColor * NdotL * (A + B * max(0.0, cos(thetaI - thetaR)) * C);
+}
 
 // vec3 cookTorranceSpecular(vec3 albedo, vec3 normal, vec3 lightDir, vec3 viewDir, float roughness) {
     
@@ -75,11 +75,11 @@ void main() {
     vec3 resultColor = vec3(0.0);
 
     if (fragMaterialID == PELLET_MAT) {
-        vec3 emissionColor = vec3(0.0f, 0.8f, 0.0f);
+        vec3 emissionColor = vec3(0.0f, 0.0f, 0.0f);
         float roughness = 0.001f;
-        // vec3 diffuse = orenNayarDiffuse(surfaceColor, normal, lightDir, viewDir, roughness);
+        vec3 diffuse = orenNayarDiffuse(surfaceColor, normal, lightDir, viewDir, roughness);
         // vec3 specular = cookTorranceSpecular(surfaceColor, normal, lightDir, viewDir, roughness);
-        vec3 diffuse = lambertDiffuse(surfaceColor, normal, lightDir);
+        // vec3 diffuse = lambertDiffuse(surfaceColor, normal, lightDir);
         vec3 specular = blinnPhongSpecular(surfaceColor, normal, lightDir, viewDir);
 
         resultColor = diffuse + specular + emissionColor;

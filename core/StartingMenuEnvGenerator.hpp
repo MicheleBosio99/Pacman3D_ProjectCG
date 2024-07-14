@@ -185,6 +185,7 @@ class GameOverEnvGenerator {
 
         BillBoardRepeatedGenerator gameOverWallpaperGenerator = BillBoardRepeatedGenerator(32.0f, 32.0f, glm::vec3(-2.0f, 0.0f, 0.0f), 32);
 		BillBoardGenerator gameOverWriteGenerator = BillBoardGenerator(18.0f, 3.0f, glm::vec3(0.0f, 0.0f, 0.0f));
+        BillBoardGenerator youWonWriteGenerator = BillBoardGenerator(18.0f, 1.636f, glm::vec3(0.0f, 0.0f, 0.0f));
 
 };
 

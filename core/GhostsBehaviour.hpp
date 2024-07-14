@@ -90,13 +90,15 @@ class Ghost {
 
         bool ghostGotEaten = false;
 
+        bool canGhostMove = true;
+
 
     public:
 
         // Constructor;
-        Ghost(std::string ghostName, glm::vec3 startColor, std::vector<std::vector<int>> maze, glm::vec3 startPosition, glm::vec3 scatterPosition, float startSpeed, float speedModifier, float modeDuration) :
-            name(ghostName), color(startColor), maze(maze), initialPosition(startPosition), currentPosition(startPosition), scatterPosition(scatterPosition), state(NORMAL), modeDuration(modeDuration),
-            currentSpeed(startSpeed), speedModifier(speedModifier), sizeModifier(1.0f), frontDirection(glm::ivec2(0.0f, 1.0f)) {
+        Ghost(std::string ghostName, glm::vec3 startColor, std::vector<std::vector<int>> maze, glm::vec3 startPosition, glm::vec3 scatterPosition, float startSpeed, float speedModifier,
+            float modeDuration) : name(ghostName), color(startColor), maze(maze), initialPosition(startPosition), currentPosition(startPosition), scatterPosition(scatterPosition),
+            state(NORMAL), modeDuration(modeDuration), currentSpeed(startSpeed), speedModifier(speedModifier), sizeModifier(1.0f), frontDirection(glm::ivec2(0.0f, 1.0f)) {
             currentPositionInMap = toGridCoordinates(currentPosition);
         }
 
@@ -106,13 +108,15 @@ class Ghost {
         // Compute all needed to move the model of the ghost in the right direction for reaching pacman with its behaviour specifics;
         void move(float deltaTime, int index, std::vector<glm::ivec2> ghostsPositionsInMap, glm::vec3 pacmanPosition, glm::vec3 pacmanDirection = glm::vec3(0.0f)) {
 
+            if (!canGhostMove) { return; }
+
             if (soundName == "") { initializeGhostSirenSounds(); }
 
             if (deltaTime > 0.5f) { return; }
 
             elapsedTime += deltaTime;
 
-            // pacmanPosition = computeRealPacmanPosition(pacmanPosition - glm::vec3(0.5f, 0.0f, -0.5f));
+            pacmanPosition = glm::vec3(pacmanPosition.x, pacmanHeight, pacmanPosition.z);
 
             glm::vec3 currentTargetPosition = pacmanPosition;
             switch (state) {
@@ -125,8 +129,8 @@ class Ghost {
             currentPositionInMap = toGridCoordinates(currentPosition - glm::vec3(0.5f, 0.0f, -0.5f));
             targetPositionInMap = toGridCoordinates(targetPosition - glm::vec3(0.5f, 0.0f, -0.5f));
 
-
-            if (currentPositionInMap == toGridCoordinates(pacmanPosition - glm::vec3(0.5f, 0.0f, -0.5f))) {
+            float ghostsReach = 1.2f;
+            if (glm::distance(pacmanPosition, currentPosition) < ghostsReach) {
                 if (state != FRIGHTENED) { ghostGotPacman = true; return; }
                 else { SoundManager::playSound("pacman_ghost-eaten"); ghostGotEaten = true; ghostGotEatenBehaviour(); }
             }
@@ -183,14 +187,12 @@ class Ghost {
         // Behaviour when the ghost gets eaten;
         void ghostGotEatenBehaviour(int time = 5) {
             std::thread eatenThread([this, time] {
-                modelMatrix = initialMatrixTransf * glm::translate(glm::mat4(1.0f), initialPosition);
+                canGhostMove = false;
+                modelMatrix = glm::translate(initialMatrixTransf, initialPosition);
                 currentPosition = initialPosition;
-
-                float s = speedModifier;
-                speedModifier = 0.0f;
                 std::this_thread::sleep_for(std::chrono::seconds(time));
-                speedModifier = s;
                 ghostGotEaten = false;
+                canGhostMove = true;
             });
 
             eatenThread.detach(); // Threads runs independently;
@@ -551,6 +553,15 @@ class GhostCollection {
             pinky->changeModeDuration(duration);
             inky->changeModeDuration(duration);
             clyde->changeModeDuration(duration);
+        }
+
+        std::vector<std::tuple<glm::vec3, bool>> getGhostsPositions() {
+            return {
+                std::make_tuple(blinky->getCurrentPosition(), blinky->getGhostState() == NORMAL),
+                std::make_tuple(pinky->getCurrentPosition(), pinky->getGhostState() == NORMAL),
+                std::make_tuple(inky->getCurrentPosition(), inky->getGhostState() == NORMAL),
+                std::make_tuple(clyde->getCurrentPosition(), clyde->getGhostState() == NORMAL),
+            };
         }
 
 

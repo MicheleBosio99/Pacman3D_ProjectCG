@@ -119,6 +119,7 @@ class MazeGenerator {
                     if (maze[x][y] == WALL) {
 
                         float negX = 1.0f - wallScale, negY = 1.0f - wallScale, posX = wallScale, posY = wallScale;
+                        float cornerAdjX = 0.0f, cornerAdjY = 0.0f;
 
                         if (x > 0 && maze[x - 1][y] == WALL) { negX = 0.0f; } // Up wall;
                         if (y > 0 && maze[x][y - 1] == WALL) { negY = 0.0f; } // Right wall;
@@ -133,66 +134,133 @@ class MazeGenerator {
                         x_coord = x * wallSize - mazeCenterX;
                         y_coord = y * wallSize - mazeCenterY;
 
-                        std::vector<Vertex> wallVertices = {
-                            // Bottom face;
-                            { { x_coord + negX, 0.0f, y_coord + negY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-                            { { x_coord + posX, 0.0f, y_coord + negY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
-                            { { x_coord + posX, 0.0f, y_coord + posY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
-                            { { x_coord + negX, 0.0f, y_coord + posY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT },
-                            // Top face;
-                            { { x_coord + negX, 2.0f, y_coord + negY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT },
-                            { { x_coord + posX, 2.0f, y_coord + negY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
-                            { { x_coord + posX, 2.0f, y_coord + posY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
-                            { { x_coord + negX, 2.0f, y_coord + posY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-                            // Front face (positive x);
-                            { { x_coord + posX, 0.0f, y_coord + negY }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-							{ { x_coord + posX, 0.0f, y_coord + posY }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
-							{ { x_coord + posX, 2.0f, y_coord + posY }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
-							{ { x_coord + posX, 2.0f, y_coord + negY }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT },
-                            // Back face (negative x);
-                            { { x_coord + negX, 0.0f, y_coord + negY }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-                            { { x_coord + negX, 0.0f, y_coord + posY }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
-                            { { x_coord + negX, 2.0f, y_coord + posY }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
-							{ { x_coord + negX, 2.0f, y_coord + negY }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT },
-                            // Right face (negative z);
-                            { { x_coord + negX, 0.0f, y_coord + negY }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-							{ { x_coord + posX, 0.0f, y_coord + negY }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
-							{ { x_coord + posX, 2.0f, y_coord + negY }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
-							{ { x_coord + negX, 2.0f, y_coord + negY }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT },
-                            // Left face (positive z);
-							{ { x_coord + negX, 0.0f, y_coord + posY }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
-                            { { x_coord + posX, 0.0f, y_coord + posY }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
-                            { { x_coord + posX, 2.0f, y_coord + posY }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
-							{ { x_coord + negX, 2.0f, y_coord + posY }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT }
-                        };
+                        auto [p, corner] = isCorner(x, y);
 
-                        // Add the vertices to the mazeVertices vector;
-                        for (const auto& vertex : wallVertices) { mazeVertices.push_back(vertex); }
+                        if (corner) {
+                            auto adjX = p.x, adjY = p.y;
+                            std::vector<Vertex> wallVertices;
 
-                        // Get the index of the first vertex of this wall;
-                        uint32_t startIndex = static_cast<uint32_t>(mazeVertices.size() - 12);
+                            if (adjX > 0 && adjY > 0) {
+                                // Bottom face;
+                                wallVertices.push_back({ { x_coord + negX, 0.0f, y_coord + negY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + posX, 0.0f, y_coord + negY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + posX, 0.0f, y_coord + posY - wallScale }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + posX - wallScale, 0.0f, y_coord + posY - wallScale }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + posX - wallScale, 0.0f, y_coord + posY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + negX, 0.0f, y_coord + posY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT });
+                                // Top face;
+                                wallVertices.push_back({ { x_coord + negX, 2.0f, y_coord + negY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + posX, 2.0f, y_coord + negY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + posX, 2.0f, y_coord + posY - wallScale }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + posX - wallScale, 2.0f, y_coord + posY - wallScale }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + posX - wallScale, 2.0f, y_coord + posY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT });
+                                wallVertices.push_back({ { x_coord + negX, 2.0f, y_coord + posY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT });
+                                
 
-                        std::vector<uint32_t> wallIndices = {
-							// Bottom face;
-							startIndex, startIndex + 1, startIndex + 2, startIndex, startIndex + 2, startIndex + 3,
-							// Top face;
-							startIndex + 4, startIndex + 5, startIndex + 6, startIndex + 4, startIndex + 6, startIndex + 7,
-							// Front face;
-							startIndex + 8, startIndex + 9, startIndex + 10, startIndex + 8, startIndex + 10, startIndex + 11,
-							// Back face;
-							startIndex + 12, startIndex + 13, startIndex + 14, startIndex + 12, startIndex + 14, startIndex + 15,
-							// Right face;
-							startIndex + 16, startIndex + 17, startIndex + 18, startIndex + 16, startIndex + 18, startIndex + 19,
-							// Left face;
-							startIndex + 20, startIndex + 21, startIndex + 22, startIndex + 20, startIndex + 22, startIndex + 23
-						};
 
-                        // Add the indices to the mazeIndices vector;
-                        for (const auto& index : wallIndices) { mazeIndices.push_back(index); }
+                                // Add the vertices to the mazeVertices vector;
+                                for (const auto& vertex : wallVertices) { mazeVertices.push_back(vertex); }
+
+                                // Get the index of the first vertex of this wall;
+                                uint32_t startIndex = static_cast<uint32_t>(mazeVertices.size() - wallVertices.size());
+
+                                std::vector<uint32_t> wallIndices = {
+                                    // Bottom face;
+                                    startIndex, startIndex + 1, startIndex + 2, startIndex, startIndex + 2, startIndex + 3,
+                                    startIndex, startIndex + 3, startIndex + 4, startIndex, startIndex + 4, startIndex + 5,
+                                    // Top face;
+                                    startIndex + 6, startIndex + 7, startIndex + 8, startIndex + 6, startIndex + 7, startIndex + 9,
+                                    startIndex + 6, startIndex + 9, startIndex + 10, startIndex + 6, startIndex + 10, startIndex + 11,
+                                    // Front face;
+                                    //startIndex + 8, startIndex + 9, startIndex + 10, startIndex + 8, startIndex + 10, startIndex + 11,
+                                    //// Back face;
+                                    //startIndex + 12, startIndex + 13, startIndex + 14, startIndex + 12, startIndex + 14, startIndex + 15,
+                                    //// Right face;
+                                    //startIndex + 16, startIndex + 17, startIndex + 18, startIndex + 16, startIndex + 18, startIndex + 19,
+                                    //// Left face;
+                                    //startIndex + 20, startIndex + 21, startIndex + 22, startIndex + 20, startIndex + 22, startIndex + 23
+                                };
+
+                                // Add the indices to the mazeIndices vector;
+                                for (const auto& index : wallIndices) { mazeIndices.push_back(index); }
+                            }
+
+                            
+                        } // Wrong;
+                        else {
+                            std::vector<Vertex> wallVertices = {
+                                // Bottom face;
+                                { { x_coord + negX, 0.0f, y_coord + negY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 0.0f, y_coord + negY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 0.0f, y_coord + posY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + negX, 0.0f, y_coord + posY }, color, { 0.0f, -1.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                                // Top face;
+                                { { x_coord + negX, 2.0f, y_coord + negY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(0.0f, 1.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 2.0f, y_coord + negY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(1.0f, 1.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 2.0f, y_coord + posY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + negX, 2.0f, y_coord + posY }, color, { 0.0f, 1.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                                // Front face (positive x);
+                                { { x_coord + posX, 0.0f, y_coord + negY }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 0.0f, y_coord + posY }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 2.0f, y_coord + posY }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 2.0f, y_coord + negY }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT },
+                                // Back face (negative x);
+                                { { x_coord + negX, 0.0f, y_coord + negY }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + negX, 0.0f, y_coord + posY }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + negX, 2.0f, y_coord + posY }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
+                                { { x_coord + negX, 2.0f, y_coord + negY }, color, { -1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT },
+                                // Right face (negative z);
+                                { { x_coord + negX, 0.0f, y_coord + negY }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 0.0f, y_coord + negY }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 2.0f, y_coord + negY }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
+                                { { x_coord + negX, 2.0f, y_coord + negY }, color, { 0.0f, 0.0f, -1.0f }, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT },
+                                // Left face (positive z);
+                                { { x_coord + negX, 0.0f, y_coord + posY }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 0.0f, y_coord + posY }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
+                                { { x_coord + posX, 2.0f, y_coord + posY }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(1.0f, 2.0f), ENVIRONMENT_MAT },
+                                { { x_coord + negX, 2.0f, y_coord + posY }, color, { 0.0f, 0.0f, 1.0f }, glm::vec2(0.0f, 2.0f), ENVIRONMENT_MAT }
+                            };
+
+                            // Add the vertices to the mazeVertices vector;
+                            for (const auto& vertex : wallVertices) { mazeVertices.push_back(vertex); }
+
+                            // Get the index of the first vertex of this wall;
+                            uint32_t startIndex = static_cast<uint32_t>(mazeVertices.size() - wallVertices.size());
+
+                            std::vector<uint32_t> wallIndices = {
+                                // Bottom face;
+                                startIndex, startIndex + 1, startIndex + 2, startIndex, startIndex + 2, startIndex + 3,
+                                // Top face;
+                                startIndex + 4, startIndex + 5, startIndex + 6, startIndex + 4, startIndex + 6, startIndex + 7,
+                                // Front face;
+                                startIndex + 8, startIndex + 9, startIndex + 10, startIndex + 8, startIndex + 10, startIndex + 11,
+                                // Back face;
+                                startIndex + 12, startIndex + 13, startIndex + 14, startIndex + 12, startIndex + 14, startIndex + 15,
+                                // Right face;
+                                startIndex + 16, startIndex + 17, startIndex + 18, startIndex + 16, startIndex + 18, startIndex + 19,
+                                // Left face;
+                                startIndex + 20, startIndex + 21, startIndex + 22, startIndex + 20, startIndex + 22, startIndex + 23
+                            };
+
+                            // Add the indices to the mazeIndices vector;
+                            for (const auto& index : wallIndices) { mazeIndices.push_back(index); }
+                        }
+
+                        
                     }
                 }
             }
         }
+
+        // Check if the wall is a corner;
+        std::tuple<glm::ivec2, bool> isCorner(int x, int y) {
+            return std::make_tuple(glm::ivec2(0, 0), false);
+            if (x > 0 && y > 0 && maze[x - 1][y - 1] == WALL) { return std::make_tuple(glm::vec2(-1, -1), true); }
+            else if (x > 0 && y < maze[0].size() - 1 && maze[x - 1][y + 1] == WALL) { return std::make_tuple(glm::ivec2(-1, 1), true); }
+            else if (x < maze.size() - 1 && y > 0 && maze[x + 1][y - 1] == WALL) { return std::make_tuple(glm::ivec2(1, -1), true); }
+            else if (x < maze.size() - 1 && y < maze[0].size() - 1 && maze[x + 1][y + 1] == WALL) { return std::make_tuple(glm::ivec2(1, 1), true); }
+            else { return std::make_tuple(glm::ivec2(0, 0), false); }
+		}
 };
 
 // Sky generator class creates the sky mesh. The sky is a dome;gene
@@ -391,18 +459,20 @@ class TeleporterGenerator {
 };
 
 // Gate generator class creates the mesh of the gate;
-class GateGenerator {
+class ParallelepGenerator {
 
     public:
 
         float gateWidth;
         float gateHeight;
         float gateDepth;
+        MATERIAL_TYPE type;
 
         std::vector<Vertex> gateVertices;
         std::vector<uint32_t> gateIndices;
 
-        GateGenerator(float gateWidth, float gateHeight, float gateDepth) : gateWidth(gateWidth), gateHeight(gateHeight), gateDepth(gateDepth) { generateGateMesh(); }
+        ParallelepGenerator(float gateWidth, float gateHeight, float gateDepth, MATERIAL_TYPE type = ENVIRONMENT_MAT)
+            : gateWidth(gateWidth), gateHeight(gateHeight), gateDepth(gateDepth), type(type) { generateGateMesh(); }
 
         std::vector<Vertex> getGateVertices() { return gateVertices; }
         std::vector<uint32_t> getGateIndices() { return gateIndices; }
@@ -418,15 +488,15 @@ class GateGenerator {
             float halfDepth = gateDepth / 2.0f;
 
             std::vector<Vertex> vertices = {
-                { { gatePosition.x - halfDepth, gatePosition.y, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT},
-                { { gatePosition.x - halfDepth, gatePosition.y, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
-                { { gatePosition.x - halfDepth, gatePosition.y + gateHeight, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, -1.0f), ENVIRONMENT_MAT },
-                { { gatePosition.x - halfDepth, gatePosition.y + gateHeight, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, -1.0f), ENVIRONMENT_MAT },
+                { { gatePosition.x - halfDepth, gatePosition.y, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), type},
+                { { gatePosition.x - halfDepth, gatePosition.y, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), type },
+                { { gatePosition.x - halfDepth, gatePosition.y + gateHeight, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, -1.0f), type },
+                { { gatePosition.x - halfDepth, gatePosition.y + gateHeight, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, -1.0f), type },
 
-                { { gatePosition.x + halfDepth, gatePosition.y, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), ENVIRONMENT_MAT},
-                { { gatePosition.x + halfDepth, gatePosition.y, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), ENVIRONMENT_MAT },
-                { { gatePosition.x + halfDepth, gatePosition.y + gateHeight, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, -1.0f), ENVIRONMENT_MAT },
-                { { gatePosition.x + halfDepth, gatePosition.y + gateHeight, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, -1.0f), ENVIRONMENT_MAT }
+                { { gatePosition.x + halfDepth, gatePosition.y, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, 0.0f), type},
+                { { gatePosition.x + halfDepth, gatePosition.y, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, 0.0f), type },
+                { { gatePosition.x + halfDepth, gatePosition.y + gateHeight, gatePosition.z + halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(0.0f, -1.0f), type },
+                { { gatePosition.x + halfDepth, gatePosition.y + gateHeight, gatePosition.z - halfWidth }, color, { 1.0f, 0.0f, 0.0f }, glm::vec2(1.0f, -1.0f), type }
             };
 
             for (const auto& vertex : vertices) { gateVertices.push_back(vertex); }
@@ -527,7 +597,7 @@ class GameEnvGenerator {
         FloorGenerator floorGenerator;
         SkyGenerator skyGenerator;
         TeleporterGenerator teleporterGenerator;
-        GateGenerator gateGenerator = GateGenerator(2.3f, 1.5f, 0.15f);
+        ParallelepGenerator gateGenerator = ParallelepGenerator(2.3f, 1.5f, 0.15f);
 
 };
 

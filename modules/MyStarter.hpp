@@ -361,6 +361,7 @@ class Pacman3D {
         int howManyPelletsLeft = 0; // How many pellets are left in the maze;
         int totalPellets = 0; // Total pellets in the maze;
         bool pacmanDefeated = false; // Has pacman been eaten?;
+        bool pacmanWon = false; // Has pacman won the game?;
         bool isGameFinished = false; // Is the game finished?;
         bool hasPlayerWonCurrLevel = false; // Has the player won the game?;
         int livesMax = 3;
@@ -378,6 +379,9 @@ class Pacman3D {
         std::shared_ptr<CharacterMenuModelHandler> pinkyMenuHandler; // Hold the pinky ghost model handler;
         std::shared_ptr<CharacterMenuModelHandler> inkyMenuHandler; // Hold the inky ghost model handler;
         std::shared_ptr<CharacterMenuModelHandler> clydeMenuHandler; // Hold the clyde ghost model handler;
+
+        std::shared_ptr<ModelHandler> gameOverWrite;
+        std::shared_ptr<ModelHandler> youWonWrite;
 
         std::future<void> loadStartingMenuModelsFuture;
         std::future<void> loadGameModelsFuture;
@@ -503,7 +507,7 @@ class Pacman3D {
                 movePacmanModel();
                 checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
-                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
+                // ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
                 checkForEndGame(); // Check if the game is over;
 
                 if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); } // If pacman got eaten then respawn him;
@@ -544,16 +548,12 @@ class Pacman3D {
 
             // Modify positions of banners based on if the player won or lost;
 
-            if (isGameFinished) {
-                // Translate towards player, won banner;
-            }
-            else {
-                // Translate towards player, lost banner;
-            }
+            if (pacmanWon) { youWonWrite->modelMatrix = glm::translate(youWonWrite->modelMatrix, glm::vec3(10.0f, 0.0f, 0.0f)); }
+            else { gameOverWrite->modelMatrix = glm::translate(gameOverWrite->modelMatrix, glm::vec3(10.0f, 0.0f, 0.0f)); }
 
             SoundManager::playSoundLooped("pacman_intermission");
 
-            float time = glfwGetTime(); // Show it for 3 seconds;
+            float time = glfwGetTime(); // Show it for 5.2 seconds;
 
             while (!glfwWindowShouldClose(window) && !closeApp && appInGameOverScreen && glfwGetTime() - time < 5.2f) {
 
@@ -565,7 +565,8 @@ class Pacman3D {
 
             if(SoundManager::isSoundPlaying("pacman_intermission")) { SoundManager::stopSound("pacman_intermission"); }
 
-            // Translate back banner;
+            if (pacmanWon) { youWonWrite->modelMatrix = glm::translate(youWonWrite->modelMatrix, glm::vec3(-10.0f, 0.0f, 0.0f)); }
+            else { gameOverWrite->modelMatrix = glm::translate(gameOverWrite->modelMatrix, glm::vec3(-10.0f, 0.0f, 0.0f)); }
 
             pacmanModelHandler->modelMatrix = generateModelMatrix(pacmanModelStartingPosition + glm::vec3(4.0f, 10.0f, 0.0f), 180.0f, 0.0f, 0.0f, 0.55f);
             pacmanModelHandler->scaleModelMatrix(1.0f / 0.36f);
@@ -868,15 +869,23 @@ class Pacman3D {
             wallpaper->vertices = gameOverEnvGenerator.gameOverWallpaperGenerator.getBillboardVertices();
             wallpaper->indices = gameOverEnvGenerator.gameOverWallpaperGenerator.getBillboardIndices();
 
-            auto gameOverWrite = std::make_shared<GameModelHandler>(
-                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.92f, 0.0f)),
+            gameOverWrite = std::make_shared<GameModelHandler>(
+                glm::translate(glm::mat4(1.0f), glm::vec3(-10.0f, 0.92f, 0.0f)),
                 "textures/menus/GameOver_LargeAndPellets.png"
             );
             gameOverWrite->vertices = gameOverEnvGenerator.gameOverWriteGenerator.getBillboardVertices();
             gameOverWrite->indices = gameOverEnvGenerator.gameOverWriteGenerator.getBillboardIndices();
 
+            youWonWrite = std::make_shared<GameModelHandler>(
+                glm::translate(glm::mat4(1.0f), glm::vec3(-10.0f, 0.92f, 0.0f)),
+                "textures/menus/YouWon_LargeAndPellets.png"
+            );
+            youWonWrite->vertices = gameOverEnvGenerator.youWonWriteGenerator.getBillboardVertices();
+            youWonWrite->indices = gameOverEnvGenerator.youWonWriteGenerator.getBillboardIndices();
+
             gameOverModelHandlers.push_back(wallpaper);
             gameOverModelHandlers.push_back(gameOverWrite);
+            gameOverModelHandlers.push_back(youWonWrite);
 
 			generateModels(gameOverModelHandlers);
 		}
@@ -906,6 +915,7 @@ class Pacman3D {
             isGameFinished = false;
             hasPlayerWonCurrLevel = false;
             pacmanDefeated = false;
+            pacmanWon = false;
             // modelHandlers.clear();
         }
 
@@ -1042,7 +1052,10 @@ class Pacman3D {
                     if (maze[i][j] == PELLET) {
                         PelletGenerator pelletGenerator = PelletGenerator(pelletPosition);
 
-                        auto pelletHandler = std::make_shared<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/NormalPellet.png", i, j);
+                        auto pelletHandler = std::make_shared<PelletModelHandler>(
+                            glm::translate(glm::mat4(1.0f), pelletPosition),
+                            "textures/test/PatinatedCopper.png", i, j
+                        );
                         pelletHandler->vertices = pelletGenerator.getPelletVertices();
                         pelletHandler->indices = pelletGenerator.getPelletIndices();
                         pelletHandler->pointsWhenEaten = 10.0f;
@@ -1054,7 +1067,10 @@ class Pacman3D {
                     else if (maze[i][j] == POWER_PELLET) {
                         PelletGenerator pelletGenerator = PelletGenerator(pelletPosition, true, 0.4f, 50.0f);
 
-                        auto pelletHandler = std::make_shared<PelletModelHandler>(glm::translate(glm::mat4(1.0f), pelletPosition), "textures/test/PowerPellet.png", i, j);
+                        auto pelletHandler = std::make_shared<PelletModelHandler>(
+                            glm::translate(glm::mat4(1.0f), pelletPosition),
+                            "textures/test/Gold.png", i, j
+                        );
                         pelletHandler->vertices = pelletGenerator.getPelletVertices();
                         pelletHandler->indices = pelletGenerator.getPelletIndices();
                         pelletHandler->pointsWhenEaten = 50.0f;
@@ -1092,7 +1108,7 @@ class Pacman3D {
                 livesModels.push_back(lifeHandler);
 			}
 
-            auto ppSignLives = GateGenerator(0.75f, 0.18f, 0.1f);
+            auto ppSignLives = ParallelepGenerator(0.75f, 0.18f, 0.1f, HUD_MAT);
             auto lifeSignHandler = std::make_shared<GameModelHandler>(
                 glm::translate(glm::mat4(1.0f), glm::vec3(7.82f, 0.72f, 0.0f)),
                 "textures/menus/LivesLeft.png" 
@@ -1125,6 +1141,13 @@ class Pacman3D {
             }
             else if (playerPosInMaze.x < 0 || playerPosInMaze.x > maze.size() || playerPosInMaze.y < 0 || playerPosInMaze.y > maze[0].size()) { return; }
             else if (maze[playerPosInMaze.x][playerPosInMaze.y] == WALL || maze[playerPosInMaze.x][playerPosInMaze.y] == GHOSTS_HUB) {
+
+                /*float num;
+                glm::vec2 wallDirection = glm::vec2(
+                    nextPosition.x - std::floor(nextPosition.x) < 0.5f ? 1 : -1,
+                    nextPosition.z - std::floor(nextPosition.z) < 0.5f ? 1 : -1
+                );
+                std::cout << "Wall direction: " << nextPosition.x << " " << nextPosition.z << std::endl;*/
 
                 glm::vec3 movement = nextPosition - currentPosition;
                 glm::vec3 newPosition = currentPosition;
@@ -1240,6 +1263,9 @@ class Pacman3D {
             checkIfPlayerGotAllPellets(); // Check if player got all pellets;
         }
 
+        // The ghosts radius of reach;
+        float ghostsReach = 1.2f;
+
         // Check if player collided with ghosts;
         void checkForPlayerCollisionsWGhosts() { if (ghosts.checkIfGhostsGotPacman()) { SoundManager::playSound("pacman_death"); pacmanDefeated = true; } }
 
@@ -1300,7 +1326,7 @@ class Pacman3D {
                 std::thread makePlayerStayStill([] { viewCamera.pacmanGotEatenBehaviour(3); });
                 makePlayerStayStill.detach();
 
-                ghosts.resetAfterEatingPacman(8);
+                ghosts.resetAfterEatingPacman(3);
                 pacmanDefeated = false;
 
                 moveLivesModels();
@@ -1323,7 +1349,7 @@ class Pacman3D {
         void setUpNewLevel() {
 			currentLevel++;
 
-			if (currentLevel == lastLevel) { isGameFinished = true; }
+            if (currentLevel == lastLevel) { isGameFinished = true; pacmanWon = true; }
 			else {
 				SoundManager::playSound("pacman_respawn");
                 viewCamera.reInitializateAll(
