@@ -504,6 +504,7 @@ class Pacman3D {
 
                 // processInput(window); // Used to move camera with no wall collisions;
                 movePlayerAndCheckCollisionsWithWalls(); // Move player and check for collisions;
+                updatePlayerPositionForSound(); // Update player position for sound;
                 movePacmanModel();
                 checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
@@ -931,14 +932,14 @@ class Pacman3D {
 
             auto labirinthHandler = std::make_shared<GameModelHandler>(
                 glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)),
-                "textures/filter_forge/PacmanWall14_EpilecticAttackEdition.png" // "textures/filter_forge/PacmanWall14_EpilecticAttackEdition.png"
+                "textures/wall/PacmanWall1.png" // "textures/filter_forge/PacmanWall14_EpilecticAttackEdition.png"
             );
             labirinthHandler->vertices = envGenerator.mazeGenerator.getMazeVertices();
             labirinthHandler->indices = envGenerator.mazeGenerator.getMazeIndices();
 
             auto floorHandler = std::make_shared<GameModelHandler>(
                 glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)),
-                "textures/filter_forge/PacmanFloor2.png"
+                "textures/floor/PacmanFloor.png"
             );
             floorHandler->vertices = envGenerator.floorGenerator.getFloorVertices();
             floorHandler->indices = envGenerator.floorGenerator.getFloorIndices();
@@ -1087,14 +1088,13 @@ class Pacman3D {
 			{ 0, {} },
             { 1, { glm::vec3(7.95f, 0.55f, 0.0f) } },
 			{ 2, { glm::vec3(7.95f, 0.55f, -0.1f), glm::vec3(7.95f, 0.55f, 0.1f) } },
-			{ 3, { glm::vec3(7.95f, 0.55f, -0.2f), glm::vec3(7.95f, 0.55f, 0.0f), glm::vec3(7.95f, 0.55f, 0.2f) } },
+			{ 3, { glm::vec3(7.85f, 0.55f, -0.2f), glm::vec3(7.85f, 0.55f, 0.0f), glm::vec3(7.85f, 0.55f, 0.2f) } },
             { 4, { glm::vec3(7.95f, 0.55f, -0.3f), glm::vec3(7.95f, 0.55f, -0.1f), glm::vec3(7.95f, 0.55f, 0.1f), glm::vec3(7.95f, 0.55f, 0.3f) } },
             { 5, { glm::vec3(7.95f, 0.55f, -0.4f), glm::vec3(7.95f, 0.55f, -0.2f), glm::vec3(7.95f, 0.55f, 0.0f), glm::vec3(7.95f, 0.55f, 0.2f), glm::vec3(7.95f, 0.55f, 0.4f) } },
             { 6, { glm::vec3(7.95f, 0.55f, -0.5f), glm::vec3(7.95f, 0.55f, -0.3f), glm::vec3(7.95f, 0.55f, -0.1f), glm::vec3(7.95f, 0.55f, 0.1f), glm::vec3(7.95f, 0.55f, 0.3f), glm::vec3(7.95f, 0.55f, 0.5f) } }
         };
         std::vector<std::shared_ptr<ModelHandler>> livesModels;
         
-
         // Add lives models to the scene;
         void addLivesModelToScene() {
             auto positions = livesPosition[livesLeft];
@@ -1127,8 +1127,6 @@ class Pacman3D {
             processInput(window); // Use the input received from keyboard this frame to update the view matrix;
             glm::vec3 nextPosition = viewCamera.position;
 
-            updatePlayerPositionForSound();
-
             glm::ivec2 playerPosInMaze = toGridCoordinates(nextPosition, maze.size(), maze[0].size());
 
             if ((playerPosInMaze.x == 13 || playerPosInMaze.x == 14 || playerPosInMaze.x == 15) && playerPosInMaze.y == 28) {
@@ -1141,13 +1139,6 @@ class Pacman3D {
             }
             else if (playerPosInMaze.x < 0 || playerPosInMaze.x > maze.size() || playerPosInMaze.y < 0 || playerPosInMaze.y > maze[0].size()) { return; }
             else if (maze[playerPosInMaze.x][playerPosInMaze.y] == WALL || maze[playerPosInMaze.x][playerPosInMaze.y] == GHOSTS_HUB) {
-
-                /*float num;
-                glm::vec2 wallDirection = glm::vec2(
-                    nextPosition.x - std::floor(nextPosition.x) < 0.5f ? 1 : -1,
-                    nextPosition.z - std::floor(nextPosition.z) < 0.5f ? 1 : -1
-                );
-                std::cout << "Wall direction: " << nextPosition.x << " " << nextPosition.z << std::endl;*/
 
                 glm::vec3 movement = nextPosition - currentPosition;
                 glm::vec3 newPosition = currentPosition;
@@ -1190,7 +1181,9 @@ class Pacman3D {
         }
 
         // Check if player position is a valid position;
-        bool isValidPosition(glm::ivec2 pos, const std::vector<std::vector<int>>& maze) { return !outOfBounds(pos, maze) && maze[pos.x][pos.y] != WALL && maze[pos.x][pos.y] != GHOSTS_HUB; }
+        bool isValidPosition(glm::ivec2 pos, const std::vector<std::vector<int>>& maze) {
+            return !outOfBounds(pos, maze) && maze[pos.x][pos.y] != WALL && maze[pos.x][pos.y] != GHOSTS_HUB;
+        }
 
         // Check if position is out of bounds;
         bool outOfBounds(glm::ivec2 pos, const std::vector<std::vector<int>>& maze) { return pos.x < 0 || pos.x >= maze.size() || pos.y < 0 || pos.y >= maze[0].size(); }
@@ -2556,7 +2549,7 @@ class Pacman3D {
             memcpy(handler.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo)); // Copy the UBO in the uniform buffer;
         }
 
-        // END13 _______________________________________________________________________________________________________________________________________________________________
+        // END13 ______________________________________________________________________________________________________________________________________________________________________________
 
 
 
@@ -2632,7 +2625,7 @@ class Pacman3D {
             }
         }
 
-        // END14 ______________________________________________________________________________________________________________________________________________________________
+        // END14 ______________________________________________________________________________________________________________________________________________________________________________
 
 
 
@@ -3107,7 +3100,6 @@ class Pacman3D {
         }
 
         // END19 ___________________________________________________________________________________________________________________________________________________________________________
-
 
 
 
