@@ -279,6 +279,9 @@ class Ghost {
         // Getter of ghost current speed;   
         float getCurrentSpeed() { return currentSpeed; }
 
+        // Getter of ghost color;
+        glm::vec3 getColor() { return color; }
+
 
     private :
 
@@ -563,6 +566,8 @@ class GhostCollection {
                 std::make_tuple(clyde->getCurrentPosition(), clyde->getGhostState() == NORMAL),
             };
         }
+
+        std::vector<glm::vec3> getGhostsColors() { return { blinky->getColor(), pinky->getColor(), inky->getColor(), clyde->getColor() }; }
 
 
 

@@ -21,14 +21,24 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 modelNorm;
     mat4 view;
     mat4 proj;
-    vec3 lightDirection;
-    vec3 lightColor;
-    vec3 viewerPos;
 
-    
 } ubo;
 
-layout(binding = 1) uniform sampler2D texSampler;
+layout(binding = 1) uniform GlobalUniformBufferObject {
+    vec3 viewerPos;
+
+    vec3 ambientLightDirection;
+    vec3 ambientLightColor;
+
+    vec3 pointLightPos[238];
+    vec3 pointLightColors[238];
+
+    vec3 ghostsLightsPositions[4];
+    vec3 ghostsLightsColors[4];
+
+} gubo;
+
+layout(binding = 2) uniform sampler2D texSampler;
 
 
 vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 Md, vec3 Ms, float gamma) {
@@ -39,17 +49,16 @@ vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 Md, vec3 Ms, float gamma) {
 }
 
 void main() {
-    vec3 viewDir = normalize(ubo.viewerPos - fragPos);
+    vec3 viewDir = normalize(gubo.viewerPos - fragPos);
     vec3 normal = normalize(fragNormCoord);
 
-    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));
+    vec3 lightDir = normalize(vec3(0.0f, 1.0f, 0.0f));
 
-    vec3 ambientLightColor = vec3(1.0, 0.85, 0.7);
-    float ambientIntensity = 0.5;  // Aumenta l'intensità della luce ambientale
+    vec3 ambientLightColor = vec3(1.0f, 0.85f, 0.7f);
+    float ambientIntensity = 0.1f;  // Ambient light intensity;
 
-    // Campiona il colore della texture
     vec3 texColor = texture(texSampler, fragTexCoord).rgb;
-
+    
     // Inizializza resultColor
     vec3 resultColor;
 
@@ -67,71 +76,3 @@ void main() {
 
     outColor = vec4(resultColor, 1.0);
 }
-
-
-// vec3 lambertDiffuse(vec3 albedo, vec3 normal, vec3 lightDir) {
-//     float NdotL = max(dot(normal, lightDir), 0.0);
-//     return albedo * ubo.lightColor * NdotL;
-// }
-
-// vec3 blinnPhongSpecular(vec3 albedo, vec3 normal, vec3 lightDir, vec3 viewDir) {
-//     vec3 halfVec = normalize(lightDir + viewDir);
-//     float NdotH = max(dot(normal, halfVec), 0.0);
-//     float shininess = 32.0;
-//     return albedo * ubo.lightColor * pow(NdotH, shininess);
-// }
-
-// vec3 orenNayarDiffuse(vec3 albedo, vec3 normal, vec3 lightDir, vec3 viewDir, float roughness) {
-//     float sigma2 = roughness * roughness;
-//     float A = 1.0 - 0.5 * (sigma2 / (sigma2 + 0.33));
-//     float B = 0.45 * (sigma2 / (sigma2 + 0.09));
-
-//     float NdotL = max(dot(normal, lightDir), 0.0);
-//     float NdotV = max(dot(normal, viewDir), 0.0);
-//     float thetaI = acos(NdotL);
-//     float thetaR = acos(NdotV);
-
-//     float alpha = max(thetaI, thetaR);
-//     float beta = min(thetaI, thetaR);
-
-//     float C = sin(alpha) * tan(beta);
-//     return albedo * ubo.lightColor * NdotL * (A + B * max(0.0, cos(thetaI - thetaR)) * C);
-// }
-
-// // vec3 cookTorranceSpecular(vec3 albedo, vec3 normal, vec3 lightDir, vec3 viewDir, float roughness) {
-    
-// // }
-
-
-
-
-// void main() {
-//     vec3 viewDir = normalize(ubo.viewerPos - fragPos);
-//     vec3 lightDir = normalize(ubo.lightDirection);
-//     vec3 halfVec = normalize(lightDir + viewDir);
-//     vec3 normal = normalize(fragNormCoord);
-
-//     vec3 surfaceColor = texture(texSampler, fragTexCoord).rgb;
-//     vec3 ambient = 0.1 * surfaceColor; // Simplified ambient for illustration
-//     vec3 resultColor = vec3(0.0);
-
-//     if (fragMaterialID == PELLET_MAT) {
-//         vec3 emissionColor = vec3(0.0f, 0.0f, 0.0f);
-//         float roughness = 0.001f;
-//         vec3 diffuse = orenNayarDiffuse(surfaceColor, normal, lightDir, viewDir, roughness);
-//         // vec3 specular = cookTorranceSpecular(surfaceColor, normal, lightDir, viewDir, roughness);
-//         // vec3 diffuse = lambertDiffuse(surfaceColor, normal, lightDir);
-//         vec3 specular = blinnPhongSpecular(surfaceColor, normal, lightDir, viewDir);
-
-//         resultColor = diffuse + specular + emissionColor;
-//     } else if (fragMaterialID == HUD_MAT) {
-//         resultColor = surfaceColor * fragColor;
-//     } else {
-//         vec3 diffuse = lambertDiffuse(surfaceColor, normal, lightDir);
-//         vec3 specular = blinnPhongSpecular(surfaceColor, normal, lightDir, viewDir);
-
-//         resultColor = ambient + diffuse + specular;
-//     }
-   
-//     outColor = vec4(resultColor, 1.0);
-// }

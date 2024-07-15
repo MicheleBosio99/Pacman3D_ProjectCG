@@ -18,10 +18,22 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 modelNorm;
     mat4 view;
     mat4 proj;
-    vec3 lightDirection;
-    vec3 lightColor;
-    vec3 viewerPos;
+
 } ubo;
+
+layout(binding = 1) uniform GlobalUniformBufferObject {
+    vec3 viewerPos;
+
+    vec3 ambientLightDirection;
+    vec3 ambientLightColor;
+
+    vec3 pointLightPos[238];
+    vec3 pointLightColors[238];
+
+    vec3 ghostsLightsPositions[4];
+    vec3 ghostsLightsColors[4];
+    
+} gubo;
 
 void main() {
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
