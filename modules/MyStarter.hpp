@@ -151,7 +151,7 @@ struct GlobalUniformBufferObject {
     glm::vec3 ambientLightDirection;
     glm::vec3 ambientLightColor;
 
-    int pointLightCount = 12; // Uses only 12 for the pellets to not overload the GPU;
+    int pointLightCount = 12; // Uses only 12 point lights for the pellets to not overload the GPU;
     glm::vec3 pointLightPos[12];
     glm::vec4 pointLightColors[12];
 
