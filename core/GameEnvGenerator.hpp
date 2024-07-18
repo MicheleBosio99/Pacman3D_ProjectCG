@@ -43,7 +43,7 @@ class MazeGenerator {
         std::vector<uint32_t> mazeIndices; // Indices connecting the vertices of the maze;
 
         // MazeGenerator constructor;
-        MazeGenerator(bool generateNewMaze = false, std::string filename = "resources/TEST_PacmanModifiedMaze.txt") {
+        MazeGenerator(bool generateNewMaze = false, std::string filename = "resources/PacmanModifiedMaze.txt") {
 
             if (!generateNewMaze) { loadMazeFromFile(filename); }
             else { generateRandomMaze(); }
@@ -276,7 +276,7 @@ class SkyGenerator {
         std::vector<Vertex> skyVertices;
         std::vector<uint32_t> skyIndices;
 
-        SkyGenerator(float radius = 24.0f, float maxHeight = -24.0f, int numLatSegments = 32, int numLonSegments = 64)
+        SkyGenerator(float radius = 50.0f, float maxHeight = -50.0f, int numLatSegments = 32, int numLonSegments = 64)
             : skyRadius(radius), maxHeight(maxHeight), numLatSegments(numLatSegments), numLonSegments(numLatSegments) { generateSkyMesh(); }
 
         std::vector<Vertex> geSkyVertices() { return skyVertices; }
@@ -351,7 +351,7 @@ class FloorGenerator {
         std::vector<Vertex> floorVertices;
         std::vector<uint32_t> floorIndices;
 
-        FloorGenerator(float sideLength = 50.0f, int segments = 20, int textureRepeatCount = 20) : floorSide(sideLength), numOfSegments(segments), textureRepeatCount(textureRepeatCount) { generateFloorMesh(); }
+        FloorGenerator(float sideLength = 75.0f, int segments = 30, int textureRepeatCount = 30) : floorSide(sideLength), numOfSegments(segments), textureRepeatCount(textureRepeatCount) { generateFloorMesh(); }
 
         std::vector<Vertex> getFloorVertices() { return floorVertices; }
         std::vector<uint32_t> getFloorIndices() { return floorIndices; }

@@ -151,11 +151,13 @@ struct GlobalUniformBufferObject {
     glm::vec3 ambientLightDirection;
     glm::vec3 ambientLightColor;
 
-    glm::vec3 pointLightPos[238];
-    glm::vec3 pointLightColors[238];
+    int pointLightCount = 12; // Uses only 12 for the pellets to not overload the GPU;
+    glm::vec3 pointLightPos[12];
+    glm::vec4 pointLightColors[12];
 
+    int ghostLightCount = 4;
     glm::vec3 ghostsLightsPos[4];
-    glm::vec3 ghostsLightsColors[4];
+    glm::vec4 ghostsLightsColors[4];
 };
 
 static std::vector<char> readFile(const std::string& filename) {
@@ -502,7 +504,7 @@ class Pacman3D {
                 movePacmanModel();
                 checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
-                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
+                // ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
                 checkForEndGame(); // Check if the game is over;
 
                 if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); } // If pacman got eaten then respawn him;
@@ -1105,10 +1107,10 @@ class Pacman3D {
                 livesModels.push_back(lifeHandler);
 			}
 
-            auto ppSignLives = ParallelepGenerator(0.75f, 0.18f, 0.1f, HUD_MAT);
+            auto ppSignLives = ParallelepGenerator(0.75f, 0.2596f, 0.1f, HUD_MAT);
             auto lifeSignHandler = std::make_shared<GameModelHandler>(
                 glm::translate(glm::mat4(1.0f), glm::vec3(7.82f, 0.72f, 0.0f)),
-                "textures/menus/LivesLeft.png" 
+                "textures/menus/LivesLeft4.png"
             );
             lifeSignHandler->vertices = ppSignLives.gateVertices;
             lifeSignHandler->indices = ppSignLives.gateIndices;
@@ -2559,31 +2561,50 @@ class Pacman3D {
             gubo.ambientLightDirection = glm::vec3(0.0f, 1.0f, 0.0f);
             gubo.ambientLightColor = glm::vec3(1.0f, 0.85f, 0.7f); // Ambient light color; TODO;
 
-            int i = 0;
-            for (auto& modelRow : pelletsInMaze) {
-                for (auto& [p, eaten] : modelRow) {
-                    if (!eaten && p != nullptr) {
-                        auto pp = std::dynamic_pointer_cast<PelletModelHandler>(p);
-                        gubo.pointLightPos[i] = pp->modelMatrix[3];
-                        gubo.pointLightColors[i] = glm::vec3(i / 238.0f);
-                        i++;
-                    }
-                }
+            /*findNearActivePellets(&gubo);*/
+            for (int i = 0; i < gubo.pointLightCount; i++) {
+                gubo.pointLightPos[i] = glm::vec3(0.0f, 0.0f, 0.0f);
+                gubo.pointLightColors[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
             }
 
-            auto ghostsPosTuples = ghosts.getGhostsPositions();
+            for (int i = 0; i < gubo.ghostLightCount; i++) {
+                gubo.ghostsLightsPos[i] = glm::vec3(0.0f, 0.0f, 0.0f);
+                gubo.ghostsLightsColors[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            }
+
+            /*auto ghostsPosTuples = ghosts.getGhostsPositions();
             std::vector<glm::vec3> ghostsPos;
             for (const auto& [first, _] : ghostsPosTuples) { ghostsPos.push_back(first); }
 
             std::vector<glm::vec3> ghostsColors = ghosts.getGhostsColors();
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < gubo.ghostLightCount; i++) {
                 gubo.ghostsLightsPos[i] = ghostsPos[i];
-                gubo.ghostsLightsColors[i] = ghostsColors[i];
-            }
+                gubo.ghostsLightsColors[i] = glm::vec4(ghostsColors[i], 1.0f);
+            }*/
 
             memcpy(globalUniformBuffersMapped[currentImage], &gubo, sizeof(gubo)); // Copy the UBO in the uniform buffer;
         }
+
+        /*void findNearActivePellets(GlobalUniformBufferObject* gubo) {
+            auto maze = envGenerator.mazeGenerator.getMaze();
+            int i = 0;
+            std::vector<glm::ivec2> directions = { {0, 1}, {0, -1}, {1, 0}, {-1, 0} };
+            glm::ivec2 playerPosInMaze = toGridCoordinates(viewCamera.position, maze.size(), maze[0].size());
+
+            for (int dist = 0; i < 12; dist++) {
+                for (auto dir : directions) {
+                    if (playerPosInMaze.x + dir.x * dist < 0 || playerPosInMaze.x + dir.x * dist >= maze.size() ||
+                        playerPosInMaze.y + dir.y * dist < 0 || playerPosInMaze.y + dir.y * dist >= maze[0].size()) { continue; }
+                    auto pellet = pelletsInMaze[playerPosInMaze.x + dir.x * dist][playerPosInMaze.y + dir.y * dist];
+                    if (i < 12 && std::get<1>(pellet) == false) {
+                        gubo->pointLightPos[i] = std::get<0>(pellet)->getModelMatrix()[3];
+                        gubo->pointLightColors[i] = glm::vec4(glm::vec3(0.8f, 0.8f, 0.0f), 1.0f);
+                        i ++;
+                    }
+                }
+            }
+        }*/
 
 
 

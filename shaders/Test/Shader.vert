@@ -27,12 +27,14 @@ layout(binding = 1) uniform GlobalUniformBufferObject {
     vec3 ambientLightDirection;
     vec3 ambientLightColor;
 
-    vec3 pointLightPos[238];
-    vec3 pointLightColors[238];
+    int pointLightCount;
+    vec3 pointLightPos[12];
+    vec3 pointLightColors[12];
 
+    int ghostLightCount;
     vec3 ghostsLightsPositions[4];
     vec3 ghostsLightsColors[4];
-    
+
 } gubo;
 
 void main() {

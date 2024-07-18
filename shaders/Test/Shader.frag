@@ -30,15 +30,28 @@ layout(binding = 1) uniform GlobalUniformBufferObject {
     vec3 ambientLightDirection;
     vec3 ambientLightColor;
 
-    vec3 pointLightPos[238];
-    vec3 pointLightColors[238];
+    int pointLightCount;
+    vec3 pointLightPos[12];
+    vec4 pointLightColors[12];
 
+    int ghostLightCount;
     vec3 ghostsLightsPositions[4];
-    vec3 ghostsLightsColors[4];
+    vec4 ghostsLightsColors[4];
 
 } gubo;
 
 layout(binding = 2) uniform sampler2D texSampler;
+
+vec3 point_light_dir(vec3 pos, int i) { return normalize(gubo.pointLightPos[i] - pos); }
+
+vec3 point_light_color(vec3 pos, int i) {
+	vec3 lightColor = gubo.pointLightColors[i].rgb;
+	float g = gubo.pointLightColors[i].a;
+	float beta = 2.0;
+	vec3 lightPos = gubo.pointLightPos[i];
+	float attenuation = pow((g / length(lightPos - pos)), beta);
+	return lightColor * attenuation;
+}
 
 
 vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 Md, vec3 Ms, float gamma) {
@@ -46,6 +59,17 @@ vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 Md, vec3 Ms, float gamma) {
     vec3 Specular = Ms * vec3(pow(clamp(dot(N, normalize(V + L)), 0.0, 1.0), gamma));
 
     return (Diffuse + Specular);
+}
+
+vec3 BRDF1(vec3 Albedo, vec3 Norm, vec3 EyeDir, vec3 LD) {
+// Compute the BRDF, with a given color <Albedo>, in a given position characterized bu a given normal vector <Norm>,
+// for a light direct according to <LD>, and viewed from a direction <EyeDir>
+	vec3 Diffuse;
+	vec3 Specular;
+	Diffuse = Albedo * max(dot(Norm, LD),0.0f);
+	Specular = vec3(pow(max(dot(EyeDir, -reflect(LD, Norm)),0.0f), 160.0f));
+	
+	return Diffuse + Specular;
 }
 
 void main() {
@@ -72,6 +96,11 @@ void main() {
         vec3 brdfColor = BRDF(viewDir, normal, lightDir, texColor, vec3(1.0), 32.0);  // Usa BRDF per il calcolo
         vec3 ambient = ambientLightColor * ambientIntensity * texColor;
         resultColor = ambient + brdfColor;  // Combina illuminazione ambientale e BRDF
+
+        // for (int i = 0; i < gubo.pointLightCount; i ++) {
+        //     resultColor +=
+        //         BRDF1(texColor, normal, viewDir, point_light_dir(fragPos, i)) * point_light_color(fragPos, i);
+        // }
     }
 
     outColor = vec4(resultColor, 1.0);
