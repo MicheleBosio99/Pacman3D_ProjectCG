@@ -52,6 +52,7 @@ enum MATERIAL_TYPE {
     ENVIRONMENT_MAT,
     SKY_MAT,
     PELLET_MAT,
+    POWER_PELLET_MAT,
     FROM_FILE_MAT,
     HUD_MAT,
 };
@@ -504,7 +505,7 @@ class Pacman3D {
                 movePacmanModel();
                 checkForPlayerCollisionsWPellets(); // Check for player collisions with pellets;
 
-                // ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
+                ghosts.moveAllGhosts(deltaTime, viewCamera.position, viewCamera.front); // Move all ghosts;
                 checkForEndGame(); // Check if the game is over;
 
                 if (pacmanDefeated and livesLeft > 0) { pacmanGotEaten(); } // If pacman got eaten then respawn him;
@@ -1053,7 +1054,7 @@ class Pacman3D {
 
                         auto pelletHandler = std::make_shared<PelletModelHandler>(
                             glm::translate(glm::mat4(1.0f), pelletPosition),
-                            "textures/test/PatinatedCopper.png", i, j
+                            "textures/test/GalvanisedSteel.png", i, j
                         );
                         pelletHandler->vertices = pelletGenerator.getPelletVertices();
                         pelletHandler->indices = pelletGenerator.getPelletIndices();
@@ -1064,7 +1065,7 @@ class Pacman3D {
                         howManyPelletsLeft++; totalPellets++;
                     }
                     else if (maze[i][j] == POWER_PELLET) {
-                        PelletGenerator pelletGenerator = PelletGenerator(pelletPosition, true, 0.4f, 50.0f);
+                        PelletGenerator pelletGenerator = PelletGenerator(pelletPosition, true, 0.4f, 50.0f, POWER_PELLET_MAT);
 
                         auto pelletHandler = std::make_shared<PelletModelHandler>(
                             glm::translate(glm::mat4(1.0f), pelletPosition),
@@ -2183,7 +2184,7 @@ class Pacman3D {
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             renderPassInfo.renderPass = renderPass;
             renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex]; // Pick right framebuffer for current swapchain image;
-            renderPassInfo.renderArea.offset = { 0, 0 }; // Size of render area
+            renderPassInfo.renderArea.offset = { 0, 0 }; // Size of render area;
             renderPassInfo.renderArea.extent = swapChainExtent;
 
             std::array<VkClearValue, 2> clearValues{};
@@ -2473,21 +2474,21 @@ class Pacman3D {
 
         void createDescriptorSetLayout() {
 
-            VkDescriptorSetLayoutBinding uboLayoutBinding{};
+            VkDescriptorSetLayoutBinding uboLayoutBinding { };
             uboLayoutBinding.binding = 0;
             uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             uboLayoutBinding.descriptorCount = 1; // Values in array of uniform buffer objects;
             uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // What stage is it referenced in;
             uboLayoutBinding.pImmutableSamplers = nullptr; // Optional - only for image sampling;
 
-            VkDescriptorSetLayoutBinding guboLayoutBinding{};
+            VkDescriptorSetLayoutBinding guboLayoutBinding { };
             guboLayoutBinding.binding = 1;
             guboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             guboLayoutBinding.descriptorCount = 1;
             guboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
             guboLayoutBinding.pImmutableSamplers = nullptr;
 
-            VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+            VkDescriptorSetLayoutBinding samplerLayoutBinding { };
             samplerLayoutBinding.binding = 2;
             samplerLayoutBinding.descriptorCount = 1;
             samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -2550,7 +2551,6 @@ class Pacman3D {
             memcpy(handler.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo)); // Copy the UBO in the uniform buffer;
         }
 
-
         // Update uniform buffer;
         void updateGlobalUniformBuffer(uint32_t currentImage) {
 
@@ -2558,21 +2558,15 @@ class Pacman3D {
 
             gubo.viewerPos = viewCamera.position; // Viewer eyes position;
 
-            gubo.ambientLightDirection = glm::vec3(0.0f, 1.0f, 0.0f);
-            gubo.ambientLightColor = glm::vec3(1.0f, 0.85f, 0.7f); // Ambient light color; TODO;
+            gubo.ambientLightDirection = glm::vec3(glm::sin(glm::dot(viewCamera.position, glm::vec3(1.0f))));
+            gubo.ambientLightColor = glm::vec3(1.0f, 1.0f, 1.0f); // Ambient light color, right now just white;
 
-            /*findNearActivePellets(&gubo);*/
             for (int i = 0; i < gubo.pointLightCount; i++) {
-                gubo.pointLightPos[i] = glm::vec3(0.0f, 0.0f, 0.0f);
-                gubo.pointLightColors[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            }
+                gubo.pointLightPos[i] = glm::vec3(8.5f, 0.0f, i + 0.5f);
+                gubo.pointLightColors[i] = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+            } // Lights do not *** work;
 
-            for (int i = 0; i < gubo.ghostLightCount; i++) {
-                gubo.ghostsLightsPos[i] = glm::vec3(0.0f, 0.0f, 0.0f);
-                gubo.ghostsLightsColors[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            }
-
-            /*auto ghostsPosTuples = ghosts.getGhostsPositions();
+            auto ghostsPosTuples = ghosts.getGhostsPositions();
             std::vector<glm::vec3> ghostsPos;
             for (const auto& [first, _] : ghostsPosTuples) { ghostsPos.push_back(first); }
 
@@ -2581,32 +2575,10 @@ class Pacman3D {
             for (int i = 0; i < gubo.ghostLightCount; i++) {
                 gubo.ghostsLightsPos[i] = ghostsPos[i];
                 gubo.ghostsLightsColors[i] = glm::vec4(ghostsColors[i], 1.0f);
-            }*/
-
-            memcpy(globalUniformBuffersMapped[currentImage], &gubo, sizeof(gubo)); // Copy the UBO in the uniform buffer;
-        }
-
-        /*void findNearActivePellets(GlobalUniformBufferObject* gubo) {
-            auto maze = envGenerator.mazeGenerator.getMaze();
-            int i = 0;
-            std::vector<glm::ivec2> directions = { {0, 1}, {0, -1}, {1, 0}, {-1, 0} };
-            glm::ivec2 playerPosInMaze = toGridCoordinates(viewCamera.position, maze.size(), maze[0].size());
-
-            for (int dist = 0; i < 12; dist++) {
-                for (auto dir : directions) {
-                    if (playerPosInMaze.x + dir.x * dist < 0 || playerPosInMaze.x + dir.x * dist >= maze.size() ||
-                        playerPosInMaze.y + dir.y * dist < 0 || playerPosInMaze.y + dir.y * dist >= maze[0].size()) { continue; }
-                    auto pellet = pelletsInMaze[playerPosInMaze.x + dir.x * dist][playerPosInMaze.y + dir.y * dist];
-                    if (i < 12 && std::get<1>(pellet) == false) {
-                        gubo->pointLightPos[i] = std::get<0>(pellet)->getModelMatrix()[3];
-                        gubo->pointLightColors[i] = glm::vec4(glm::vec3(0.8f, 0.8f, 0.0f), 1.0f);
-                        i ++;
-                    }
-                }
             }
-        }*/
 
-
+            memcpy(globalUniformBuffersMapped[currentImage], &gubo, sizeof(gubo));
+        }
 
 
         // END13 ______________________________________________________________________________________________________________________________________________________________________________
