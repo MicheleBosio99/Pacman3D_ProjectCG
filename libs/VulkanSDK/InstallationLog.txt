@@ -1,0 +1,266 @@
+************************************* Invoked: mar mar 5 18:01:06 2024
+[0] Arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\VulkanSDK-1.3.275.0-Installer.exe
+[4] Operations sanity check succeeded.
+[4] Language: it-IT
+[243] Loaded control script ":/metadata/installer-config/installscript_qs.qs"
+[243] Using control script: ":/metadata/installer-config/installscript_qs.qs"
+[7403] Preparazione del download delle informazioni sui metadati...
+[7954] Recupero delle informazioni sui metadati dal repository remoto in corso...
+[8519] Estrazione informazioni sui metadati in corso...
+[25235] OverwriteTargetDirectory : Avviso : Si è selezionata una directory esistente non vuota per l'installazione.
+Notare che verrà eliminata completamente in caso di disinstallazione di questa applicazione.
+Non è consigliabile eseguire l'installazione in questa directory poiché l'installazione potrebbe avere esito negativo.
+Continuare? Yes|No
+[52631] Installation space required: "1.10 GB" Temporary space required: "392.61 MB" Local repository size: "0.00 byte"
+[52632] Tmp and install directories are on the same volume. Volume mount point: "C:\\" Free space available: "1.26 TB"
+[54431] backup  operation: Mkdir
+[54431] 	- arguments: C:/Users/bosio/All_Files/Computer Graphics/VulkanSDK
+[54431] Done
+[54432] perform  operation: Mkdir
+[54432] 	- arguments: C:/Users/bosio/All_Files/Computer Graphics/VulkanSDK
+[54432] Done
+[54432] Preparazione dell'installazione in corso...
+[54432] Install size: 2 components
+[54439] Installazione componente The Vulkan SDK
+[54439] backup com.lunarg.vulkan operation: License
+[54439] 	- arguments:
+[54439] Done
+[54440] perform com.lunarg.vulkan operation: License
+[54440] 	- arguments:
+[54441] Done
+[54451] Installazione componente The Vulkan SDK Core (Always Installed)
+[54451] backup com.lunarg.vulkan.core operation: Extract
+[54451] 	- arguments: installer://com.lunarg.vulkan.core/1.3.275.0core.7z, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK
+[54451] Done
+[54451] perform com.lunarg.vulkan.core operation: Extract
+[54452] 	- arguments: installer://com.lunarg.vulkan.core/1.3.275.0core.7z, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK
+[60566] Done
+[60566] Starting elevated process "C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\VulkanSDK-1.3.275.0-Installer.exe" with arguments " --start-server PRODUCTION,{9dfa5e1f-7110-4586-a16c-7e545b6db5d0},{97cf5cca-db36-4d5b-8d85-54ec783531d1}"
+[60880] Finished starting elevated process.
+[60923] "Execute" as admin: true
+[60923] backup com.lunarg.vulkan.core operation: Execute
+[60925] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK, SHORTCUTS, Vulkan SDK 1.3.275.0, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, REMOVESHORTCUTS, Vulkan SDK 1.3.275.0
+[60925] Done
+[60925] perform com.lunarg.vulkan.core operation: Execute
+[60926] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK, SHORTCUTS, Vulkan SDK 1.3.275.0, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, REMOVESHORTCUTS, Vulkan SDK 1.3.275.0
+[60927] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK SHORTCUTS Vulkan SDK 1.3.275.0
+[62590] Done
+[62590] "Execute" as admin: true
+[62590] backup com.lunarg.vulkan.core operation: Execute
+[62591] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_api_dump.json
+[62591] Done
+[62591] perform com.lunarg.vulkan.core operation: Execute
+[62592] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_api_dump.json
+[62593] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "CLEANEXPLICIT VkLayer_api_dump.json
+[62606] Done
+[62606] "Execute" as admin: true
+[62606] backup com.lunarg.vulkan.core operation: Execute
+[62607] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_api_dump.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_api_dump.json
+[62607] Done
+[62607] perform com.lunarg.vulkan.core operation: Execute
+[62608] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_api_dump.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_api_dump.json
+[62609] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "ADDEXPLICIT C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin\\VkLayer_api_dump.json
+[62623] Done
+[62624] "Execute" as admin: true
+[62624] backup com.lunarg.vulkan.core operation: Execute
+[62624] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_gfxreconstruct.json
+[62624] Done
+[62624] perform com.lunarg.vulkan.core operation: Execute
+[62625] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_gfxreconstruct.json
+[62625] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "CLEANEXPLICIT VkLayer_gfxreconstruct.json
+[62638] Done
+[62639] "Execute" as admin: true
+[62639] backup com.lunarg.vulkan.core operation: Execute
+[62640] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_gfxreconstruct.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_gfxreconstruct.json
+[62640] Done
+[62640] perform com.lunarg.vulkan.core operation: Execute
+[62640] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_gfxreconstruct.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_gfxreconstruct.json
+[62641] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "ADDEXPLICIT C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin\\VkLayer_gfxreconstruct.json
+[62655] Done
+[62655] "Execute" as admin: true
+[62655] backup com.lunarg.vulkan.core operation: Execute
+[62656] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_khronos_synchronization2.json
+[62656] Done
+[62656] perform com.lunarg.vulkan.core operation: Execute
+[62656] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_khronos_synchronization2.json
+[62657] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "CLEANEXPLICIT VkLayer_khronos_synchronization2.json
+[62670] Done
+[62670] "Execute" as admin: true
+[62670] backup com.lunarg.vulkan.core operation: Execute
+[62671] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_synchronization2.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_synchronization2.json
+[62671] Done
+[62671] perform com.lunarg.vulkan.core operation: Execute
+[62672] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_synchronization2.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_synchronization2.json
+[62672] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "ADDEXPLICIT C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin\\VkLayer_khronos_synchronization2.json
+[62685] Done
+[62685] "Execute" as admin: true
+[62685] backup com.lunarg.vulkan.core operation: Execute
+[62686] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_khronos_validation.json
+[62686] Done
+[62686] perform com.lunarg.vulkan.core operation: Execute
+[62687] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_khronos_validation.json
+[62687] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "CLEANEXPLICIT VkLayer_khronos_validation.json
+[62700] Done
+[62701] "Execute" as admin: true
+[62701] backup com.lunarg.vulkan.core operation: Execute
+[62702] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_validation.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_validation.json
+[62702] Done
+[62702] perform com.lunarg.vulkan.core operation: Execute
+[62702] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_validation.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_validation.json
+[62703] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "ADDEXPLICIT C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin\\VkLayer_khronos_validation.json
+[62716] Done
+[62716] "Execute" as admin: true
+[62716] backup com.lunarg.vulkan.core operation: Execute
+[62717] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_monitor.json
+[62717] Done
+[62717] perform com.lunarg.vulkan.core operation: Execute
+[62717] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_monitor.json
+[62718] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "CLEANEXPLICIT VkLayer_monitor.json
+[62731] Done
+[62731] "Execute" as admin: true
+[62731] backup com.lunarg.vulkan.core operation: Execute
+[62732] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_monitor.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_monitor.json
+[62732] Done
+[62732] perform com.lunarg.vulkan.core operation: Execute
+[62733] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_monitor.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_monitor.json
+[62733] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "ADDEXPLICIT C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin\\VkLayer_monitor.json
+[62746] Done
+[62747] "Execute" as admin: true
+[62747] backup com.lunarg.vulkan.core operation: Execute
+[62747] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_screenshot.json
+[62747] Done
+[62747] perform com.lunarg.vulkan.core operation: Execute
+[62748] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_screenshot.json
+[62748] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "CLEANEXPLICIT VkLayer_screenshot.json
+[62761] Done
+[62761] "Execute" as admin: true
+[62761] backup com.lunarg.vulkan.core operation: Execute
+[62762] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_screenshot.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_screenshot.json
+[62762] Done
+[62762] perform com.lunarg.vulkan.core operation: Execute
+[62763] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_screenshot.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_screenshot.json
+[62764] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "ADDEXPLICIT C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin\\VkLayer_screenshot.json
+[62777] Done
+[62777] "Execute" as admin: true
+[62777] backup com.lunarg.vulkan.core operation: Execute
+[62778] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_khronos_profiles.json
+[62778] Done
+[62778] perform com.lunarg.vulkan.core operation: Execute
+[62778] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_khronos_profiles.json
+[62779] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "CLEANEXPLICIT VkLayer_khronos_profiles.json
+[62792] Done
+[62792] "Execute" as admin: true
+[62792] backup com.lunarg.vulkan.core operation: Execute
+[62793] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_profiles.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_profiles.json
+[62793] Done
+[62793] perform com.lunarg.vulkan.core operation: Execute
+[62794] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_profiles.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_profiles.json
+[62795] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "ADDEXPLICIT C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin\\VkLayer_khronos_profiles.json
+[62807] Done
+[62808] "Execute" as admin: true
+[62808] backup com.lunarg.vulkan.core operation: Execute
+[62808] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_khronos_shader_object.json
+[62808] Done
+[62808] perform com.lunarg.vulkan.core operation: Execute
+[62809] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_khronos_shader_object.json
+[62809] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "CLEANEXPLICIT VkLayer_khronos_shader_object.json
+[62822] Done
+[62823] "Execute" as admin: true
+[62823] backup com.lunarg.vulkan.core operation: Execute
+[62824] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_shader_object.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_shader_object.json
+[62824] Done
+[62824] perform com.lunarg.vulkan.core operation: Execute
+[62825] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, ADDEXPLICIT, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_shader_object.json, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, DELKEYVALUE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin\VkLayer_khronos_shader_object.json
+[62825] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "ADDEXPLICIT C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin\\VkLayer_khronos_shader_object.json
+[62838] Done
+[62838] "Execute" as admin: true
+[62838] backup com.lunarg.vulkan.core operation: Execute
+[62839] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_device_simulation.json
+[62839] Done
+[62839] perform com.lunarg.vulkan.core operation: Execute
+[62839] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, CLEANEXPLICIT, VkLayer_device_simulation.json
+[62840] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "CLEANEXPLICIT VkLayer_device_simulation.json
+[62852] Done
+[62852] "Execute" as admin: true
+[62852] backup com.lunarg.vulkan.core operation: Execute
+[62854] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin, NOP, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin, REMOVE
+[62854] Done
+[62854] perform com.lunarg.vulkan.core operation: Execute
+[62856] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin, NOP, UNDOEXECUTE, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin, REMOVE
+[62857] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin NOP
+[62869] Done
+[62869] "Execute" as admin: true
+[62869] backup com.lunarg.vulkan.core operation: Execute
+[62870] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin, ADD
+[62870] Done
+[62870] perform com.lunarg.vulkan.core operation: Execute
+[62871] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Helpers\install_helper.exe, C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK\Bin, ADD
+[62872] C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Helpers\\install_helper.exe" started, arguments: "C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK\\Bin ADD
+[64252] Done
+[64253] backup com.lunarg.vulkan.core operation: License
+[64253] 	- arguments:
+[64253] Done
+[64253] perform com.lunarg.vulkan.core operation: License
+[64253] 	- arguments:
+[64254] Done
+[64258] Writing maintenance tool: "C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK/maintenancetool.exe.new"
+[64258] Scrittura dello strumento di manutenzione.
+[64283] Wrote permissions for maintenance tool.
+[64400] Maintenance tool restart: false.
+[64402] Installazione completata.
+[64468] perform  operation: Delete
+[64468] 	- arguments: C:\Users\bosio\All_Files\Computer Graphics\VulkanSDK/Helpers/VC_redist.x64.exe
+[64469] Warning: QString::arg: Argument missing: Run the Vulkan Configurator and Hardware Capabilities Viewer, Vulkan SDK 1.3.275.0
+[64469] Done
+[64469] Component name: com.lunarg.vulkan.core
+[64469] perform  operation: Execute
+[64469] 	- arguments: reg, ADD, HKEY_LOCAL_MACHINE\SOFTWARE\LunarG\VulkanSDK, /v, com.lunarg.vulkan.core, /t, REG_DWORD, /d, 1, /f
+[64469] reg" started, arguments: "ADD HKEY_LOCAL_MACHINE\\SOFTWARE\\LunarG\\VulkanSDK /v com.lunarg.vulkan.core /t REG_DWORD /d 1 /f
+[64481] Done
+[64482] Is Installed
+[64482] Component name: com.lunarg.vulkan.32bit
+[64482] perform  operation: Execute
+[64482] 	- arguments: reg, ADD, HKEY_LOCAL_MACHINE\SOFTWARE\LunarG\VulkanSDK, /v, com.lunarg.vulkan.32bit, /t, REG_DWORD, /d, 0, /f
+[64482] reg" started, arguments: "ADD HKEY_LOCAL_MACHINE\\SOFTWARE\\LunarG\\VulkanSDK /v com.lunarg.vulkan.32bit /t REG_DWORD /d 0 /f
+[64494] Done
+[64495] Was not installed
+[64495] Component name: com.lunarg.vulkan.debug
+[64495] perform  operation: Execute
+[64495] 	- arguments: reg, ADD, HKEY_LOCAL_MACHINE\SOFTWARE\LunarG\VulkanSDK, /v, com.lunarg.vulkan.debug, /t, REG_DWORD, /d, 0, /f
+[64495] reg" started, arguments: "ADD HKEY_LOCAL_MACHINE\\SOFTWARE\\LunarG\\VulkanSDK /v com.lunarg.vulkan.debug /t REG_DWORD /d 0 /f
+[64507] Done
+[64508] Was not installed
+[64508] Component name: com.lunarg.vulkan.debug32
+[64508] perform  operation: Execute
+[64508] 	- arguments: reg, ADD, HKEY_LOCAL_MACHINE\SOFTWARE\LunarG\VulkanSDK, /v, com.lunarg.vulkan.debug32, /t, REG_DWORD, /d, 0, /f
+[64508] reg" started, arguments: "ADD HKEY_LOCAL_MACHINE\\SOFTWARE\\LunarG\\VulkanSDK /v com.lunarg.vulkan.debug32 /t REG_DWORD /d 0 /f
+[64519] Done
+[64519] Was not installed
+[64519] Component name: com.lunarg.vulkan.glm
+[64519] perform  operation: Execute
+[64519] 	- arguments: reg, ADD, HKEY_LOCAL_MACHINE\SOFTWARE\LunarG\VulkanSDK, /v, com.lunarg.vulkan.glm, /t, REG_DWORD, /d, 0, /f
+[64520] reg" started, arguments: "ADD HKEY_LOCAL_MACHINE\\SOFTWARE\\LunarG\\VulkanSDK /v com.lunarg.vulkan.glm /t REG_DWORD /d 0 /f
+[64530] Done
+[64531] Was not installed
+[64531] Component name: com.lunarg.vulkan.sdl2
+[64531] perform  operation: Execute
+[64531] 	- arguments: reg, ADD, HKEY_LOCAL_MACHINE\SOFTWARE\LunarG\VulkanSDK, /v, com.lunarg.vulkan.sdl2, /t, REG_DWORD, /d, 0, /f
+[64531] reg" started, arguments: "ADD HKEY_LOCAL_MACHINE\\SOFTWARE\\LunarG\\VulkanSDK /v com.lunarg.vulkan.sdl2 /t REG_DWORD /d 0 /f
+[64543] Done
+[64544] Was not installed
+[64544] Component name: com.lunarg.vulkan.volk
+[64544] perform  operation: Execute
+[64544] 	- arguments: reg, ADD, HKEY_LOCAL_MACHINE\SOFTWARE\LunarG\VulkanSDK, /v, com.lunarg.vulkan.volk, /t, REG_DWORD, /d, 0, /f
+[64544] reg" started, arguments: "ADD HKEY_LOCAL_MACHINE\\SOFTWARE\\LunarG\\VulkanSDK /v com.lunarg.vulkan.volk /t REG_DWORD /d 0 /f
+[64555] Done
+[64555] Was not installed
+[64555] Component name: com.lunarg.vulkan.vma
+[64555] perform  operation: Execute
+[64555] 	- arguments: reg, ADD, HKEY_LOCAL_MACHINE\SOFTWARE\LunarG\VulkanSDK, /v, com.lunarg.vulkan.vma, /t, REG_DWORD, /d, 0, /f
+[64555] reg" started, arguments: "ADD HKEY_LOCAL_MACHINE\\SOFTWARE\\LunarG\\VulkanSDK /v com.lunarg.vulkan.vma /t REG_DWORD /d 0 /f
+[64566] Done
+[64567] Was not installed
+[64569] Component name: com.lunarg.vulkan.core
+[64569] Component name: com.lunarg.vulkan.32bit
+[64569] 32Bit Is NOT Installed
+[344029] starting "C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK/Helpers/launch_helper.exe" ("C:\\Users\\bosio\\All_Files\\Computer Graphics\\VulkanSDK")
